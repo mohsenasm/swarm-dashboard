@@ -1,0 +1,22 @@
+version: "3"
+
+services:
+  dashboard:
+    build:
+      context: .
+      args:
+        - port=8081
+    image: registry:5000/dashboard
+    volumes:
+    - "/var/run/docker.sock:/var/run/docker.sock"
+    ports:
+    - 8081:8081
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager

@@ -1,0 +1,5 @@
+node_modules
+docker-stuff
+npm-debug.log
+Dockerfile
+rebuild.sh
