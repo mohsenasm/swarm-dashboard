@@ -1,50 +1,57 @@
 module Main exposing (..)
 
 import Html exposing (..)
+import Navigation
 import WebSocket
 
 
-webSocketUrl : String
-webSocketUrl =
-    "ws://192.168.99.100:8081/stream"
+localWebsocket : Navigation.Location -> String
+localWebsocket location =
+    "ws://" ++ location.host ++ "/stream"
 
 
 type alias Model =
-    String
+    { webSocketUrl : String
+    , data : String
+    }
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( "Hello World!", Cmd.none )
+init : Navigation.Location -> ( Model, Cmd Msg )
+init location =
+    ( { webSocketUrl = localWebsocket location, data = localWebsocket location }, Cmd.none )
 
 
 type Msg
-    = Data String
+    = UrlChange Navigation.Location
+    | Data String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Data data ->
-            ( data, Cmd.none )
+            ( { model | data = data }, Cmd.none )
+
+        UrlChange location ->
+            ( model, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    WebSocket.listen webSocketUrl Data
+    WebSocket.listen model.webSocketUrl Data
 
 
 view : Model -> Html Msg
 view model =
     div []
         [ h1 [] [ text "Hello World!" ]
-        , p [] [ text model ]
+        , p [] [ text model.data ]
         ]
 
 
 main : Program Never Model Msg
 main =
-    program
+    Navigation.program UrlChange
         { init = init
         , update = update
         , subscriptions = subscriptions
