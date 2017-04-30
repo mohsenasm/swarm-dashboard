@@ -1,5 +1,5 @@
 node_modules
-docker-stuff
+elm-stuff
 npm-debug.log
 Dockerfile
 rebuild.sh

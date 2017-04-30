@@ -5,7 +5,7 @@ RUN npm install -g elm --silent > /dev/null
 WORKDIR /home/node/app
 ENV NODE_ENV production
 
-COPY package.json yarn.lock ./
+COPY package.json yarn.lock elm-package.json ./
 RUN yarn install --production
 run elm package install -y
 

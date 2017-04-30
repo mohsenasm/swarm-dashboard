@@ -1,6 +1,12 @@
 module Main exposing (..)
 
 import Html exposing (..)
+import WebSocket
+
+
+webSocketUrl : String
+webSocketUrl =
+    "ws://192.168.99.100:8081/stream"
 
 
 type alias Model =
@@ -13,24 +19,27 @@ init =
 
 
 type Msg
-    = Nothing
+    = Data String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Nothing ->
-            ( model, Cmd.none )
+        Data data ->
+            ( data, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    WebSocket.listen webSocketUrl Data
 
 
 view : Model -> Html Msg
 view model =
-    h1 [] [ text "Hello World!" ]
+    div []
+        [ h1 [] [ text "Hello World!" ]
+        , p [] [ text model ]
+        ]
 
 
 main : Program Never Model Msg
