@@ -3,6 +3,7 @@ module Main exposing (..)
 import Dict exposing (Dict)
 import Json.Decode as Json
 import Html exposing (..)
+import Html.Attributes exposing (..)
 import Navigation
 import WebSocket
 
@@ -49,16 +50,19 @@ type alias Task =
     { id : String
     , serviceId : String
     , nodeId : String
+    , slot : Int
     , state : String
     }
 
 
 task : Json.Decoder Task
 task =
-    Json.map4 Task
+    Json.map5 Task
         (Json.at [ "ID" ] Json.string)
         (Json.at [ "ServiceID" ] Json.string)
         (Json.at [ "NodeID" ] Json.string)
+        (Json.at [ "Slot" ] Json.int)
+        -- https://github.com/docker/swarmkit/blob/master/design/task_model.md#task-lifecycle
         (Json.at [ "Status", "State" ] Json.string)
 
 
@@ -169,7 +173,18 @@ view model =
                                                     td []
                                                         (case model.tasks |> Dict.get ( node.id, service.id ) of
                                                             Just tasks ->
-                                                                [ ul [] (List.map (\t -> li [] [ text t.state ]) tasks) ]
+                                                                [ ul []
+                                                                    (List.map
+                                                                        (\t ->
+                                                                            li [ class t.state ]
+                                                                                [ text (service.name ++ "." ++ toString t.slot)
+                                                                                , br [] []
+                                                                                , text t.id
+                                                                                ]
+                                                                        )
+                                                                        tasks
+                                                                    )
+                                                                ]
 
                                                             Nothing ->
                                                                 []

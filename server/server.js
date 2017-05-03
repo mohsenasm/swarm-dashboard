@@ -48,8 +48,8 @@ setInterval(() => {
 // set up the application
 
 const app = express();
-app.use(express.static('client'));
 
+app.use(express.static('client'));
 app.get('/_health', (req, res) => res.end());
 app.get('/data', (req, res) => {
   fetchData().then(it => res.send(it)).catch(e => res.send(e.toString()));
@@ -68,7 +68,7 @@ server.on('request', app);
 wsServer.on('connection', ws => {
   const interval = setInterval(() => {
     ws.send(JSON.stringify(latestData, null, 2));
-  }, 1000);
+  }, 200);
 
   ws.on('close', () => clearInterval(interval));
 });
