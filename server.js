@@ -67,7 +67,7 @@ server.on('request', app);
 
 wsServer.on('connection', ws => {
   const interval = setInterval(() => {
-    ws.send(JSON.stringify(latestData));
+    ws.send(JSON.stringify(latestData, null, 2));
   }, 1000);
 
   ws.on('close', () => clearInterval(interval));
