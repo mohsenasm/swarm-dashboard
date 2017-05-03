@@ -6,7 +6,7 @@ services:
       context: .
       args:
         - port=8081
-    image: registry:5000/dashboard
+    image: localhost:5000/dashboard
     volumes:
     - "/var/run/docker.sock:/var/run/docker.sock"
     ports:
