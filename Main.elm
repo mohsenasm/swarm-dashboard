@@ -62,10 +62,7 @@ view { swarm, tasks } =
         { services, nodes } =
             swarm
     in
-        div []
-            [ h1 [] [ text "Swarm" ]
-            , UI.swarmGrid services nodes tasks
-            ]
+        div [] [ UI.swarmGrid services nodes tasks ]
 
 
 main : Program Never Model Msg

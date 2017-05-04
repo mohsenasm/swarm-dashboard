@@ -33,7 +33,7 @@ service nodes tasksByNodeService ({ name } as service) =
 
 swarmHeader : List Node -> Html msg
 swarmHeader nodes =
-    tr [] (th [] [] :: (nodes |> List.map (\node -> th [] [ text node.name ])))
+    tr [] (th [] [ img [ src "docker_logo.svg" ] [] ] :: (nodes |> List.map (\node -> th [] [ text node.name ])))
 
 
 swarmGrid : List Service -> List Node -> TaskIndex -> Html msg
