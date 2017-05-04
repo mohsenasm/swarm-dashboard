@@ -86,7 +86,15 @@ parse =
     Json.decodeString swarmInfoDecoder
 
 
-indexTasks : List Task -> Dict ( NodeId, ServiceId ) (List Task)
+type alias TaskIndexKey =
+    ( NodeId, ServiceId )
+
+
+type alias TaskIndex =
+    Dict TaskIndexKey (List Task)
+
+
+indexTasks : List Task -> TaskIndex
 indexTasks tasks =
     let
         reducer task result =
@@ -151,53 +159,56 @@ subscriptions model =
     WebSocket.listen model.webSocketUrl Data
 
 
-view : Model -> Html Msg
-view model =
-    div []
-        [ h1 [] [ text "Swarm" ]
-        , table []
-            [ thead []
-                [ tr []
-                    ([ th [] [] ] ++ (model.swarmInfo.nodes |> List.map (\node -> th [] [ text node.name ])))
-                ]
-            , tbody []
-                (model.swarmInfo.services
-                    |> List.map
-                        (\service ->
-                            tr []
-                                ([ th [] [ text service.name ]
-                                 ]
-                                    ++ (model.swarmInfo.nodes
-                                            |> List.map
-                                                (\node ->
-                                                    td []
-                                                        (case model.tasks |> Dict.get ( node.id, service.id ) of
-                                                            Just tasks ->
-                                                                [ ul []
-                                                                    (List.map
-                                                                        (\t ->
-                                                                            li [ class t.state ]
-                                                                                [ text (service.name ++ "." ++ toString t.slot)
-                                                                                , br [] []
-                                                                                , text t.id
-                                                                                ]
-                                                                        )
-                                                                        tasks
-                                                                    )
-                                                                ]
-
-                                                            Nothing ->
-                                                                []
-                                                        )
-                                                )
-                                       )
-                                )
-                        )
-                )
-            ]
-        , h2 [] [ text "Full API response" ]
-        , pre [] [ text model.serverJson ]
+taskCmp : Service -> Task -> Html Msg
+taskCmp service task =
+    li [ class task.state ]
+        [ text (service.name ++ "." ++ toString task.slot)
+        , br [] []
+        , text task.state
         ]
+
+
+serviceNodeCmp : Service -> TaskIndex -> Node -> Html Msg
+serviceNodeCmp service tasksByNodeService node =
+    let
+        tasks =
+            Maybe.withDefault [] (Dict.get ( node.id, service.id ) tasksByNodeService)
+    in
+        td []
+            [ ul [] (List.map (taskCmp service) tasks) ]
+
+
+serviceCmp : List Node -> TaskIndex -> Service -> Html Msg
+serviceCmp nodes tasksByNodeService ({ name } as service) =
+    tr []
+        ([ th [] [ text name ] ] ++ (List.map (serviceNodeCmp service tasksByNodeService) nodes))
+
+
+swarmHeader : List Node -> Html Msg
+swarmHeader nodes =
+    tr [] ([ th [] [] ] ++ (nodes |> List.map (\node -> th [] [ text node.name ])))
+
+
+swarmGrid : List Service -> List Node -> TaskIndex -> Html Msg
+swarmGrid services nodes tasksByNodeService =
+    table []
+        [ thead [] [ swarmHeader nodes ]
+        , tbody [] (List.map (serviceCmp nodes tasksByNodeService) services)
+        ]
+
+
+view : Model -> Html Msg
+view { swarmInfo, tasks, serverJson } =
+    let
+        { services, nodes } =
+            swarmInfo
+    in
+        div []
+            [ h1 [] [ text "Swarm" ]
+            , swarmGrid services nodes tasks
+            , h2 [] [ text "Full API response" ]
+            , pre [] [ text serverJson ]
+            ]
 
 
 main : Program Never Model Msg
