@@ -26,6 +26,18 @@ empty =
     Docker [] [] []
 
 
+sort : Docker -> Docker
+sort { nodes, services, tasks } =
+    let
+        sortedNodes =
+            List.sortBy (.name) nodes
+
+        sortedServices =
+            List.sortBy (.name) services
+    in
+        Docker sortedNodes sortedServices tasks
+
+
 fromJson : String -> Result String Docker
 fromJson =
-    parse
+    parse >> Result.map sort
