@@ -14,8 +14,8 @@
     }
 
     table {
-      border-collapse: collapse;
       width: 100%;
+      border-collapse: collapse;
     }
 
     th {
@@ -23,7 +23,18 @@
       font-weight: lighter;
     }
 
+    thead th {
+      border-width: 0;
+      border-bottom: 2px solid #547287;
+    }
+
+    thead th:first-child {
+      border-bottom-width: 0;
+    }
+
     tbody th {
+      border-width: 0;
+      border-right: 2px solid #547287;
       text-align: right;
     }
 
@@ -41,7 +52,7 @@
 
     td li {
       text-align: center;
-      margin: 0 3px 6px 3px;
+      margin: 6px 3px 0 3px;
       padding: 5px 7px;
       list-style: none;
       border: 2px solid #fff;
