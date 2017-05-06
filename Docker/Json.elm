@@ -22,13 +22,14 @@ service =
 
 task : Json.Decoder Task
 task =
-    Json.map5 Task
+    Json.map6 Task
         (Json.at [ "ID" ] Json.string)
         (Json.at [ "ServiceID" ] Json.string)
-        (Json.at [ "NodeID" ] Json.string)
+        (Json.maybe (Json.at [ "NodeID" ] Json.string))
         (Json.at [ "Slot" ] Json.int)
         -- https://github.com/docker/swarmkit/blob/master/design/task_model.md#task-lifecycle
         (Json.at [ "Status", "State" ] Json.string)
+        (Json.at [ "DesiredState" ] Json.string)
 
 
 dockerApi : Json.Decoder Docker

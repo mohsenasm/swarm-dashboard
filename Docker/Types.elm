@@ -28,9 +28,10 @@ type alias Service =
 type alias Task =
     { id : String
     , serviceId : String
-    , nodeId : String
+    , nodeId : Maybe String
     , slot : Int
     , state : String
+    , desiredState : String
     }
 
 

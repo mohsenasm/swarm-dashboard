@@ -45,7 +45,7 @@
       text-align: right;
     }
 
-    tbody tr:nth-child(2n+1) {
+    tbody tr:nth-child(2n) {
       background-color: rgba(84, 114, 135, 0.2);
     }
 
@@ -68,13 +68,31 @@
       list-style: none;
       border: 2px solid #fff;
       border-radius: 3px;
-      border-color: rgb(255, 0, 0);
-      background-color: rgba(255, 0, 0, 0.6);
+      border-color: rgb(255, 255, 255);
+    }
+
+    li.desired-ready {
+      border-color: rgb(255, 191, 0);
+    }
+
+    li.desired-running {
+      border-color: rgb(255, 191, 0);
+      background-color: rgba(255, 191, 0, 0.6);
     }
 
     li.running {
       border-color: rgb(0, 255, 0);
       background-color: rgba(0, 255, 0, 0.6);
+    }
+
+    li.desired-shutdown {
+      border-color: rgb(191, 191, 191);
+      background-color: rgba(191, 191, 191, 0.6);
+    }
+
+    li.failed {
+      border-color: rgb(255, 0, 0);
+      background-color: rgba(255, 0, 0, 0.6);
     }
   </style>
 </head>

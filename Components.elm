@@ -6,12 +6,20 @@ import Html.Attributes exposing (..)
 import Docker.Types exposing (..)
 
 
+status : String -> String -> String
+status state desiredState =
+    if state == desiredState then
+        state
+    else
+        state ++ " -> " ++ desiredState
+
+
 task : Service -> Task -> Html msg
 task service task =
-    li [ class task.state ]
+    li [ class (task.state ++ " desired-" ++ task.desiredState) ]
         [ text (service.name ++ "." ++ toString task.slot)
         , br [] []
-        , text task.state
+        , text (status task.state task.desiredState)
         ]
 
 

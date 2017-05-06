@@ -18,6 +18,7 @@ type alias Model =
     { webSocketUrl : String
     , swarm : Docker
     , tasks : TaskIndex
+    , errors : List String
     }
 
 
@@ -31,6 +32,7 @@ init location =
     ( { webSocketUrl = localWebsocket location
       , swarm = Docker.empty
       , tasks = Dict.empty
+      , errors = []
       }
     , Cmd.none
     )
@@ -45,7 +47,7 @@ update msg model =
                     ( { model | swarm = serverData, tasks = indexTasks serverData.tasks }, Cmd.none )
 
                 Err error ->
-                    ( model, Cmd.none )
+                    ( { model | errors = error :: model.errors }, Cmd.none )
 
         UrlChange location ->
             ( model, Cmd.none )
@@ -57,12 +59,15 @@ subscriptions model =
 
 
 view : Model -> Html Msg
-view { swarm, tasks } =
+view { swarm, tasks, errors } =
     let
         { services, nodes } =
             swarm
     in
-        div [] [ UI.swarmGrid services nodes tasks ]
+        div []
+            [ UI.swarmGrid services nodes tasks
+            , ul [] (List.map (\e -> li [] [ text e ]) errors)
+            ]
 
 
 main : Program Never Model Msg

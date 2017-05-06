@@ -29,9 +29,7 @@ const fetchData = () =>
   Promise.all([
     dockerAPIRequest('/nodes').then(JSON.parse),
     dockerAPIRequest('/services').then(JSON.parse),
-    dockerAPIRequest('/tasks')
-      .then(JSON.parse)
-      .then(tasks => tasks.filter(it => it.DesiredState === 'running'))
+    dockerAPIRequest('/tasks').then(JSON.parse)
   ]).then(([nodes, services, tasks]) => ({
     nodes,
     services,
@@ -43,7 +41,7 @@ const fetchData = () =>
 let latestData = {};
 setInterval(() => {
   fetchData().then(it => (latestData = it));
-}, 1000);
+}, 500);
 
 // set up the application
 
