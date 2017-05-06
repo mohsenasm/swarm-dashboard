@@ -4,6 +4,12 @@ import Docker.Types exposing (..)
 import Json.Decode as Json
 
 
+containerSpec : Json.Decoder ContainerSpec
+containerSpec =
+    Json.map ContainerSpec
+        (Json.at [ "Image" ] Json.string)
+
+
 node : Json.Decoder Node
 node =
     Json.map4 Node
@@ -15,14 +21,15 @@ node =
 
 service : Json.Decoder Service
 service =
-    Json.map2 Service
+    Json.map3 Service
         (Json.at [ "ID" ] Json.string)
         (Json.at [ "Spec", "Name" ] Json.string)
+        (Json.at [ "Spec", "TaskTemplate", "ContainerSpec" ] containerSpec)
 
 
 task : Json.Decoder Task
 task =
-    Json.map6 Task
+    Json.map7 Task
         (Json.at [ "ID" ] Json.string)
         (Json.at [ "ServiceID" ] Json.string)
         (Json.maybe (Json.at [ "NodeID" ] Json.string))
@@ -30,6 +37,7 @@ task =
         -- https://github.com/docker/swarmkit/blob/master/design/task_model.md#task-lifecycle
         (Json.at [ "Status", "State" ] Json.string)
         (Json.at [ "DesiredState" ] Json.string)
+        (Json.at [ "Spec", "ContainerSpec" ] containerSpec)
 
 
 dockerApi : Json.Decoder Docker

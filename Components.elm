@@ -16,11 +16,18 @@ status state desiredState =
 
 task : Service -> Task -> Html msg
 task service task =
-    li [ class (task.state ++ " desired-" ++ task.desiredState) ]
-        [ text (service.name ++ "." ++ toString task.slot)
-        , br [] []
-        , text (status task.state task.desiredState)
-        ]
+    let
+        classes =
+            [ ( task.state, True )
+            , ( "desired-" ++ task.desiredState, True )
+            , ( "running-old", task.state == "running" && service.containerSpec.image /= task.containerSpec.image )
+            ]
+    in
+        li [ classList classes ]
+            [ text (service.name ++ "." ++ toString task.slot)
+            , br [] []
+            , text (status task.state task.desiredState)
+            ]
 
 
 serviceNode : Service -> TaskIndex -> Node -> Html msg

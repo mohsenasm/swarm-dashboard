@@ -11,6 +11,10 @@ type alias ServiceId =
     String
 
 
+type alias ContainerSpec =
+    { image : String }
+
+
 type alias Node =
     { id : NodeId
     , name : String
@@ -22,6 +26,7 @@ type alias Node =
 type alias Service =
     { id : ServiceId
     , name : String
+    , containerSpec : ContainerSpec
     }
 
 
@@ -32,6 +37,7 @@ type alias Task =
     , slot : Int
     , state : String
     , desiredState : String
+    , containerSpec : ContainerSpec
     }
 
 
