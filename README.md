@@ -2,9 +2,9 @@
 
 A simple monitoring dashboard for Docker in Swarm Mode.
 
-## About
+![Example Dashboaerd](./swarm.gif)
 
-![Example Dashboaerd](./example.png)
+## About
 
 Swarm dashboard shows you all the tasks running on a Docker Swarm organised
 by service and node. It provides a visualisation that's space efficient
@@ -25,7 +25,6 @@ over a websocket.
 
 ## Rough roadmap
 
-* Show as many task states as makes sense (see [the task model proposal](https://github.com/docker/swarmkit/blob/master/design/task_model.md#task-lifecycle))
 * Show node details (role, state and availability, resources, ...)
 * Show more service details (published port, image name and version)
 * Show overlay networks
