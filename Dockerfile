@@ -13,9 +13,6 @@ COPY . ./
 
 RUN elm make Main.elm --output=client/index.js
 
-ARG port
-EXPOSE $port
-ENV PORT $port
 HEALTHCHECK --interval=5s --timeout=3s \
   CMD curl --fail http://localhost:$PORT/_health || exit 1
 

@@ -2,15 +2,14 @@ version: "3"
 
 services:
   dashboard:
-    build:
-      context: .
-      args:
-        - port=8081
+    build: .
     image: localhost:5000/dashboard
     volumes:
     - "/var/run/docker.sock:/var/run/docker.sock"
     ports:
     - 8081:8081
+    environment:
+      PORT: 8081
     deploy:
       replicas: 1
       update_config:
