@@ -28,6 +28,8 @@ over a websocket.
 * Show node details (role, state and availability, resources, ...)
 * Show more service details (published port, image name and version)
 * Show overlay networks
-* Node / Service /Task details panel
+* Allow hiding failed tasks
+* Node / Service / Task details panel
+* Harden for potential production use
 
 Both feature requests and pull requests are welcome
