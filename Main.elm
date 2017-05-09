@@ -3,9 +3,10 @@ module Main exposing (..)
 import Navigation
 import Html exposing (..)
 import Dict exposing (Dict)
+import Util exposing (..)
 import WebSocket
-import Docker exposing (fromJson, indexTasks)
 import Docker.Types exposing (..)
+import Docker exposing (fromJson)
 import Components as UI
 
 
@@ -47,7 +48,7 @@ update msg model =
         Receive serverJson ->
             case fromJson serverJson of
                 Ok serverData ->
-                    ( { model | swarm = serverData, tasks = indexTasks serverData.tasks }, Cmd.none )
+                    ( { model | swarm = serverData, tasks = groupBy taskIndexKey serverData.assignedTasks }, Cmd.none )
 
                 Err error ->
                     ( { model | errors = error :: model.errors }, Cmd.none )

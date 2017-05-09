@@ -1,62 +1,84 @@
 module Docker exposing (..)
 
 import Dict exposing (Dict)
+import Date exposing (Date)
 import Docker.Types exposing (..)
 import Docker.Json exposing (parse)
+import Util exposing (..)
 
 
-indexTasks : List Task -> TaskIndex
-indexTasks tasks =
-    let
-        reducer task result =
-            case task.nodeId of
-                Just nodeId ->
-                    let
-                        key =
-                            ( nodeId, task.serviceId )
-
-                        value =
-                            (task :: (Maybe.withDefault [] (Dict.get key result)))
-                    in
-                        Dict.insert key value result
-
-                Nothing ->
-                    result
-    in
-        List.foldl reducer Dict.empty tasks
+isFailed : TaskStatus -> Bool
+isFailed { state } =
+    (state == "failed")
 
 
-empty : Docker
-empty =
-    Docker [] [] []
-
-
-complement : (a -> Bool) -> a -> Bool
-complement fn =
-    \x -> not (fn x)
-
-
-isCompleted : Task -> Bool
+isCompleted : TaskStatus -> Bool
 isCompleted { state } =
     (state == "rejected") || (state == "shutdown")
 
 
-preProcess : Docker -> Docker
-preProcess { nodes, services, tasks } =
-    -- TODO split tasks into placed and not placed (based on NodeID)
+withoutFailedTaskHistory : List AssignedTask -> List AssignedTask
+withoutFailedTaskHistory =
+    let
+        key { serviceId, slot } =
+            ( serviceId, slot )
+
+        latestRunning =
+            List.sortBy (.status >> .timestamp >> Date.toTime)
+                >> List.filter (\t -> t.status.state /= "failed")
+                >> List.reverse
+                >> List.head
+
+        latest =
+            List.sortBy (.status >> .timestamp >> Date.toTime)
+                >> List.reverse
+                >> (List.take 1)
+
+        failedOlderThan running task =
+            isFailed task.status && Date.toTime task.status.timestamp < Date.toTime running.status.timestamp
+
+        filterPreviouslyFailed tasks =
+            case latestRunning tasks of
+                -- remove older failed tasks
+                Just runningTask ->
+                    List.filter (complement (failedOlderThan runningTask)) tasks
+
+                -- Keep only the latest failed task
+                Nothing ->
+                    latest tasks
+    in
+        (groupBy key) >> (Dict.map (\_ -> filterPreviouslyFailed)) >> Dict.values >> List.concat
+
+
+process : DockerApiData -> Docker
+process { nodes, services, tasks } =
     let
         sortedNodes =
-            List.sortBy (.name) nodes
+            List.sortBy .name nodes
 
         sortedServices =
-            List.sortBy (.name) services
+            List.sortBy .name services
 
-        filteredTasks =
-            List.filter (complement isCompleted) tasks
+        ( assignedTasks, plannedTasks ) =
+            tasks
+                |> (List.partition (.nodeId >> isJust))
+                >> (Tuple.mapFirst (List.map assignedTask))
+                >> (Tuple.mapSecond (List.map plannedTask))
+
+        selectNotCompleted =
+            List.filter (.status >> complement isCompleted)
+
+        processedTasks =
+            assignedTasks |> selectNotCompleted >> withoutFailedTaskHistory
     in
-        Docker sortedNodes sortedServices filteredTasks
+        Docker sortedNodes sortedServices plannedTasks processedTasks
+
+
+empty : Docker
+empty =
+    Docker [] [] [] []
 
 
 fromJson : String -> Result String Docker
 fromJson =
-    parse >> Result.map preProcess
+    parse >> Result.map process

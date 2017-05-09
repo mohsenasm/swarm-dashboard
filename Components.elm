@@ -6,27 +6,27 @@ import Html.Attributes exposing (..)
 import Docker.Types exposing (..)
 
 
-status : String -> String -> String
-status state desiredState =
+statusString : String -> String -> String
+statusString state desiredState =
     if state == desiredState then
         state
     else
         state ++ " -> " ++ desiredState
 
 
-task : Service -> Task -> Html msg
-task service task =
+task : Service -> AssignedTask -> Html msg
+task service { status, desiredState, containerSpec, slot } =
     let
         classes =
-            [ ( task.state, True )
-            , ( "desired-" ++ task.desiredState, True )
-            , ( "running-old", task.state == "running" && service.containerSpec.image /= task.containerSpec.image )
+            [ ( status.state, True )
+            , ( "desired-" ++ desiredState, True )
+            , ( "running-old", status.state == "running" && service.containerSpec.image /= containerSpec.image )
             ]
     in
         li [ classList classes ]
-            [ text (service.name ++ "." ++ toString task.slot)
+            [ text (service.name ++ "." ++ toString slot)
             , br [] []
-            , text (status task.state task.desiredState)
+            , text (statusString status.state desiredState)
             ]
 
 

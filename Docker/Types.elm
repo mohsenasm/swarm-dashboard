@@ -1,6 +1,7 @@
 module Docker.Types exposing (..)
 
 import Dict exposing (Dict)
+import Date exposing (Date)
 
 
 type alias NodeId =
@@ -30,18 +31,63 @@ type alias Service =
     }
 
 
+type alias TaskStatus =
+    { timestamp : Date
+    , state : String
+    }
+
+
 type alias Task =
     { id : String
     , serviceId : String
     , nodeId : Maybe String
     , slot : Int
-    , state : String
+    , status : TaskStatus
     , desiredState : String
     , containerSpec : ContainerSpec
     }
 
 
+type alias PlannedTask =
+    { id : String
+    , serviceId : String
+    , slot : Int
+    , status : TaskStatus
+    , desiredState : String
+    , containerSpec : ContainerSpec
+    }
+
+
+plannedTask : Task -> PlannedTask
+plannedTask { id, serviceId, slot, status, desiredState, containerSpec } =
+    PlannedTask id serviceId slot status desiredState containerSpec
+
+
+type alias AssignedTask =
+    { id : String
+    , serviceId : String
+    , nodeId : String
+    , slot : Int
+    , status : TaskStatus
+    , desiredState : String
+    , containerSpec : ContainerSpec
+    }
+
+
+assignedTask : Task -> AssignedTask
+assignedTask { id, serviceId, nodeId, slot, status, desiredState, containerSpec } =
+    AssignedTask id serviceId (Maybe.withDefault "" nodeId) slot status desiredState containerSpec
+
+
 type alias Docker =
+    { nodes : List Node
+    , services : List Service
+    , plannedTask : List PlannedTask
+    , assignedTasks : List AssignedTask
+    }
+
+
+type alias DockerApiData =
     { nodes : List Node
     , services : List Service
     , tasks : List Task
@@ -53,4 +99,9 @@ type alias TaskIndexKey =
 
 
 type alias TaskIndex =
-    Dict TaskIndexKey (List Task)
+    Dict TaskIndexKey (List AssignedTask)
+
+
+taskIndexKey : AssignedTask -> TaskIndexKey
+taskIndexKey { nodeId, serviceId } =
+    ( nodeId, serviceId )

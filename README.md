@@ -2,7 +2,7 @@
 
 A simple monitoring dashboard for Docker in Swarm Mode.
 
-![Example Dashboaerd](./swarm.gif)
+![Example Dashboard](./swarm.gif)
 
 ## About
 

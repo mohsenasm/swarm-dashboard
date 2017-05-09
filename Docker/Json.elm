@@ -1,7 +1,8 @@
 module Docker.Json exposing (parse)
 
-import Docker.Types exposing (..)
+import Date exposing (Date)
 import Json.Decode as Json
+import Docker.Types exposing (..)
 
 
 containerSpec : Json.Decoder ContainerSpec
@@ -27,6 +28,22 @@ service =
         (Json.at [ "Spec", "TaskTemplate", "ContainerSpec" ] containerSpec)
 
 
+date : Json.Decoder Date
+date =
+    let
+        safeFromString =
+            Date.fromString >> (Result.withDefault (Date.fromTime 0.0))
+    in
+        Json.string |> Json.map safeFromString
+
+
+taskStatus : Json.Decoder TaskStatus
+taskStatus =
+    Json.map2 TaskStatus
+        (Json.at [ "Timestamp" ] date)
+        (Json.at [ "State" ] Json.string)
+
+
 task : Json.Decoder Task
 task =
     Json.map7 Task
@@ -34,20 +51,19 @@ task =
         (Json.at [ "ServiceID" ] Json.string)
         (Json.maybe (Json.at [ "NodeID" ] Json.string))
         (Json.at [ "Slot" ] Json.int)
-        -- https://github.com/docker/swarmkit/blob/master/design/task_model.md#task-lifecycle
-        (Json.at [ "Status", "State" ] Json.string)
+        (Json.at [ "Status" ] taskStatus)
         (Json.at [ "DesiredState" ] Json.string)
         (Json.at [ "Spec", "ContainerSpec" ] containerSpec)
 
 
-dockerApi : Json.Decoder Docker
+dockerApi : Json.Decoder DockerApiData
 dockerApi =
-    Json.map3 Docker
+    Json.map3 DockerApiData
         (Json.at [ "nodes" ] (Json.list node))
         (Json.at [ "services" ] (Json.list service))
         (Json.at [ "tasks" ] (Json.list task))
 
 
-parse : String -> Result String Docker
+parse : String -> Result String DockerApiData
 parse =
     Json.decodeString dockerApi
