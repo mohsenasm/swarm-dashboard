@@ -65,7 +65,9 @@ server.on('request', app);
 
 wsServer.on('connection', ws => {
   const interval = setInterval(() => {
-    ws.send(JSON.stringify(latestData, null, 2));
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(latestData, null, 2));
+    }
   }, 200);
 
   ws.on('close', () => clearInterval(interval));
