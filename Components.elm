@@ -71,9 +71,9 @@ node node =
         th [ classList classes ]
             [ strong [] [ text node.name ]
             , br [] []
-            , text node.status.address
-            , br [] []
             , text nodeRole
+            , br [] []
+            , text node.status.address
             ]
 
 
