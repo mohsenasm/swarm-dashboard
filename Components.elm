@@ -49,19 +49,31 @@ service nodes tasksByNodeService ({ name } as service) =
 node : Node -> Html msg
 node node =
     let
-        managerStatus =
+        leader =
             Maybe.withDefault False (Maybe.map .leader node.managerStatus)
 
         classes =
             [ ( "down", node.status.state == "down" )
             , ( "manager", node.role == "manager" )
-            , ( "leader", managerStatus )
+            , ( "leader", leader )
             ]
+
+        nodeRole =
+            String.join " "
+                [ node.role
+                , (if leader then
+                    "(leader)"
+                   else
+                    ""
+                  )
+                ]
     in
         th [ classList classes ]
-            [ b [] [ text node.name ]
-            , (br [] [])
+            [ strong [] [ text node.name ]
+            , br [] []
             , text node.status.address
+            , br [] []
+            , text nodeRole
             ]
 
 
