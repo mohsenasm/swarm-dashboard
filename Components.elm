@@ -46,9 +46,28 @@ service nodes tasksByNodeService ({ name } as service) =
         (th [] [ text name ] :: (List.map (serviceNode service tasksByNodeService) nodes))
 
 
+node : Node -> Html msg
+node node =
+    let
+        managerStatus =
+            Maybe.withDefault False (Maybe.map .leader node.managerStatus)
+
+        classes =
+            [ ( "down", node.status.state == "down" )
+            , ( "manager", node.role == "manager" )
+            , ( "leader", managerStatus )
+            ]
+    in
+        th [ classList classes ]
+            [ b [] [ text node.name ]
+            , (br [] [])
+            , text node.status.address
+            ]
+
+
 swarmHeader : List Node -> Html msg
 swarmHeader nodes =
-    tr [] (th [] [ img [ src "docker_logo.svg" ] [] ] :: (nodes |> List.map (\node -> th [] [ text node.name ])))
+    tr [] (th [] [ img [ src "docker_logo.svg" ] [] ] :: (nodes |> List.map node))
 
 
 swarmGrid : List Service -> List Node -> TaskIndex -> Html msg

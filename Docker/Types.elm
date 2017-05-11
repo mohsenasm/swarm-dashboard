@@ -16,11 +16,24 @@ type alias ContainerSpec =
     { image : String }
 
 
+type alias NodeStatus =
+    { state : String
+    , address : String
+    }
+
+
+type alias ManagerStatus =
+    { leader : Bool
+    , reachability : String
+    }
+
+
 type alias Node =
     { id : NodeId
     , name : String
     , role : String
-    , state : String
+    , status : NodeStatus
+    , managerStatus : Maybe ManagerStatus
     }
 
 

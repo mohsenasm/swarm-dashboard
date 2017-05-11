@@ -11,13 +11,28 @@ containerSpec =
         (Json.at [ "Image" ] Json.string)
 
 
+nodeStatus : Json.Decoder NodeStatus
+nodeStatus =
+    Json.map2 NodeStatus
+        (Json.at [ "State" ] Json.string)
+        (Json.at [ "Addr" ] Json.string)
+
+
+managerStatus : Json.Decoder ManagerStatus
+managerStatus =
+    Json.map2 ManagerStatus
+        (Json.at [ "Leader" ] Json.bool)
+        (Json.at [ "Reachability" ] Json.string)
+
+
 node : Json.Decoder Node
 node =
-    Json.map4 Node
+    Json.map5 Node
         (Json.at [ "ID" ] Json.string)
         (Json.at [ "Description", "Hostname" ] Json.string)
         (Json.at [ "Spec", "Role" ] Json.string)
-        (Json.at [ "Spec", "Availability" ] Json.string)
+        (Json.at [ "Status" ] nodeStatus)
+        (Json.maybe (Json.at [ "ManagerStatus" ] managerStatus))
 
 
 service : Json.Decoder Service
