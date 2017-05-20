@@ -12,6 +12,10 @@ type alias ServiceId =
     String
 
 
+type alias NetworkId =
+    String
+
+
 type alias ContainerSpec =
     { image : String }
 
@@ -37,10 +41,26 @@ type alias Node =
     }
 
 
+type alias Network =
+    { id : NetworkId
+    , name : String
+    , ingress : Bool
+    }
+
+
+type alias RawService =
+    { id : ServiceId
+    , name : String
+    , containerSpec : ContainerSpec
+    , networks : List NetworkId
+    }
+
+
 type alias Service =
     { id : ServiceId
     , name : String
     , containerSpec : ContainerSpec
+    , networks : List Network
     }
 
 
@@ -94,15 +114,17 @@ assignedTask { id, serviceId, nodeId, slot, status, desiredState, containerSpec 
 
 type alias Docker =
     { nodes : List Node
+    , networks : List Network
     , services : List Service
-    , plannedTask : List PlannedTask
+    , plannedTasks : List PlannedTask
     , assignedTasks : List AssignedTask
     }
 
 
 type alias DockerApiData =
     { nodes : List Node
-    , services : List Service
+    , networks : List Network
+    , services : List RawService
     , tasks : List Task
     }
 

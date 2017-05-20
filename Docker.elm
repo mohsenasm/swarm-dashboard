@@ -51,13 +51,38 @@ withoutFailedTaskHistory =
 
 
 process : DockerApiData -> Docker
-process { nodes, services, tasks } =
+process { nodes, networks, services, tasks } =
     let
-        sortedNodes =
-            List.sortBy .name nodes
+        emptyNetwork =
+            { id = "", ingress = False, name = "" }
 
-        sortedServices =
-            List.sortBy .name services
+        networkIndex =
+            indexBy (.id) networks
+
+        resolveNetworks : List NetworkId -> List Network
+        resolveNetworks networks =
+            networks |> List.map (\id -> Maybe.withDefault emptyNetwork (Dict.get id networkIndex))
+
+        linkNetworks : List RawService -> List Service
+        linkNetworks =
+            List.map (\service -> { service | networks = resolveNetworks service.networks })
+
+        allNetworks : List RawService -> List Network
+        allNetworks =
+            List.concatMap .networks
+                >> unique
+                >> resolveNetworks
+                >> (List.sortBy .name)
+                >> (List.sortBy
+                        (.ingress
+                            >> (\is ->
+                                    if is then
+                                        0
+                                    else
+                                        1
+                               )
+                        )
+                   )
 
         ( assignedTasks, plannedTasks ) =
             tasks
@@ -65,18 +90,23 @@ process { nodes, services, tasks } =
                 >> (Tuple.mapFirst (List.map assignedTask))
                 >> (Tuple.mapSecond (List.map plannedTask))
 
-        selectNotCompleted =
+        notCompleted =
             List.filter (.status >> complement isCompleted)
 
-        processedTasks =
-            assignedTasks |> selectNotCompleted >> withoutFailedTaskHistory
+        filterTasks =
+            notCompleted >> withoutFailedTaskHistory
     in
-        Docker sortedNodes sortedServices plannedTasks processedTasks
+        { nodes = (List.sortBy .name nodes)
+        , networks = (allNetworks services)
+        , services = (List.sortBy .name (linkNetworks services))
+        , plannedTasks = plannedTasks
+        , assignedTasks = (filterTasks assignedTasks)
+        }
 
 
 empty : Docker
 empty =
-    Docker [] [] [] []
+    Docker [] [] [] [] []
 
 
 fromJson : String -> Result String Docker

@@ -15,6 +15,7 @@
 
     table {
       width: 100%;
+      border-spacing: 0;
       border-collapse: collapse;
       table-layout: fixed;
     }
@@ -33,6 +34,18 @@
       line-height: 2.0;
       font-size: 120%;
       font-weight: normal;
+    }
+
+    thead th.networks {
+      position: relative;
+      border-bottom-width: 0;
+      padding: 0;
+    }
+
+    thead th.networks svg {
+      position: absolute;
+      bottom: 0;
+      left: 0;
     }
 
     thead th.manager {
@@ -57,10 +70,8 @@
     }
 
     tbody th {
-      border-width: 0;
-      border-right: 2px solid #547287;
-      padding-top: 1.4em;
       background-color: #254356;
+      padding-top: 1.4em;
       text-align: right;
       vertical-align: top;
     }
@@ -72,6 +83,28 @@
     td {
       padding: 3px;
       vertical-align: top;
+    }
+
+    td.networks {
+      position: relative;
+      padding: 0;
+      border-width: 0;
+      border-right: 2px solid #547287;
+      background-color: #254356;
+      text-align: right;
+      vertical-align: top;
+    }
+
+    td.networks div {
+       position: absolute;
+       top: 62px;
+       left: 0;
+       bottom: 0;
+    }
+
+    td.networks > svg {
+      position: absolute;
+      left: 0;
     }
 
     td ul {
@@ -89,6 +122,10 @@
       border: 2px solid #fff;
       border-radius: 3px;
       border-color: rgb(255, 255, 255);
+    }
+
+    td svg {
+      display: block;
     }
 
     li.desired-ready {

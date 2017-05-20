@@ -35,12 +35,21 @@ node =
         (Json.maybe (Json.at [ "ManagerStatus" ] managerStatus))
 
 
-service : Json.Decoder Service
+network : Json.Decoder Network
+network =
+    Json.map3 Network
+        (Json.at [ "Id" ] Json.string)
+        (Json.at [ "Name" ] Json.string)
+        (Json.at [ "Ingress" ] Json.bool)
+
+
+service : Json.Decoder RawService
 service =
-    Json.map3 Service
+    Json.map4 RawService
         (Json.at [ "ID" ] Json.string)
         (Json.at [ "Spec", "Name" ] Json.string)
         (Json.at [ "Spec", "TaskTemplate", "ContainerSpec" ] containerSpec)
+        (Json.at [ "Endpoint", "VirtualIPs" ] (Json.list (Json.at [ "NetworkID" ] Json.string)))
 
 
 date : Json.Decoder Date
@@ -73,8 +82,9 @@ task =
 
 dockerApi : Json.Decoder DockerApiData
 dockerApi =
-    Json.map3 DockerApiData
+    Json.map4 DockerApiData
         (Json.at [ "nodes" ] (Json.list node))
+        (Json.at [ "networks" ] (Json.list network))
         (Json.at [ "services" ] (Json.list service))
         (Json.at [ "tasks" ] (Json.list task))
 

@@ -65,11 +65,11 @@ subscriptions model =
 view : Model -> Html Msg
 view { swarm, tasks, errors } =
     let
-        { services, nodes } =
+        { services, nodes, networks } =
             swarm
     in
         div []
-            [ UI.swarmGrid services nodes tasks
+            [ UI.swarmGrid services nodes networks tasks
             , ul [] (List.map (\e -> li [] [ text e ]) errors)
             ]
 
