@@ -3,6 +3,7 @@ module Components exposing (..)
 import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Util exposing (..)
 import Docker.Types exposing (..)
 import Components.Networks as Networks
 
@@ -60,14 +61,7 @@ node node =
             ]
 
         nodeRole =
-            String.join " "
-                [ node.role
-                , (if leader then
-                    "(leader)"
-                   else
-                    ""
-                  )
-                ]
+            String.join " " [ node.role, iff leader "(leader)" "" ]
     in
         th [ classList classes ]
             [ strong [] [ text node.name ]

@@ -73,16 +73,7 @@ process { nodes, networks, services, tasks } =
                 >> unique
                 >> resolveNetworks
                 >> (List.sortBy .name)
-                >> (List.sortBy
-                        (.ingress
-                            >> (\is ->
-                                    if is then
-                                        0
-                                    else
-                                        1
-                               )
-                        )
-                   )
+                >> (List.sortBy (.ingress >> \ingress -> iff ingress 0 1))
 
         ( assignedTasks, plannedTasks ) =
             tasks
