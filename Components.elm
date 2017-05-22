@@ -5,7 +5,6 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Docker.Types exposing (..)
 import Components.Networks as Networks
-import Components.NetworkConnections as NetworkConnections exposing (..)
 
 
 statusString : String -> String -> String
@@ -42,10 +41,10 @@ serviceNode service taskAllocations node =
             [ ul [] (List.map (task service) tasks) ]
 
 
-serviceRow : List Node -> TaskIndex -> List Network -> NetworkConnections -> Service -> Html msg
-serviceRow nodes taskAllocations allNetworks networkConnections service =
+serviceRow : List Node -> TaskIndex -> Networks.Connections -> Service -> Html msg
+serviceRow nodes taskAllocations networkConnections service =
     tr []
-        (th [] [ text service.name ] :: (Networks.connections service allNetworks networkConnections) :: (List.map (serviceNode service taskAllocations) nodes))
+        (th [] [ text service.name ] :: (Networks.connections service networkConnections) :: (List.map (serviceNode service taskAllocations) nodes))
 
 
 node : Node -> Html msg
@@ -88,9 +87,9 @@ swarmGrid : List Service -> List Node -> List Network -> TaskIndex -> Html msg
 swarmGrid services nodes networks taskAllocations =
     let
         networkConnections =
-            NetworkConnections.build services networks
+            Networks.buildConnections services networks
     in
         table []
             [ thead [] [ swarmHeader nodes networks ]
-            , tbody [] (List.map (serviceRow nodes taskAllocations networks networkConnections) services)
+            , tbody [] (List.map (serviceRow nodes taskAllocations networkConnections) services)
             ]

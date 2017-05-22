@@ -1,4 +1,4 @@
-module Components.NetworkConnections exposing (Connection(..), NetworkConnections, build, get)
+module Components.NetworkConnections exposing (Connection(..), NetworkConnections, build, serviceConnections)
 
 import Dict exposing (Dict)
 import Docker.Types exposing (..)
@@ -19,6 +19,12 @@ type Connection
 
 
 type alias NetworkConnections =
+    { networks : List Network
+    , connections : NetworkConnectionTypes
+    }
+
+
+type alias NetworkConnectionTypes =
     Dict ( ServiceId, NetworkId ) Connection
 
 
@@ -56,19 +62,28 @@ connectionType service network connected idx ( first, last ) =
         Through
 
 
-empty : NetworkConnections
+empty : NetworkConnectionTypes
 empty =
     Dict.empty
 
 
-get : ( ServiceId, NetworkId ) -> NetworkConnections -> Connection
+get : ( ServiceId, NetworkId ) -> NetworkConnectionTypes -> Connection
 get key connections =
     Maybe.withDefault None (Dict.get key connections)
 
 
-update : ServiceId -> NetworkId -> Connection -> NetworkConnections -> NetworkConnections
+update : ServiceId -> NetworkId -> Connection -> NetworkConnectionTypes -> NetworkConnectionTypes
 update sid nid connection connections =
     Dict.update ( sid, nid ) (always (Just connection)) connections
+
+
+
+-- Public interface
+
+
+serviceConnections : Service -> NetworkConnections -> List Connection
+serviceConnections service { networks, connections } =
+    List.map (\n -> get ( service.id, n.id ) connections) networks
 
 
 build : List Service -> List Network -> NetworkConnections
@@ -95,14 +110,17 @@ build services networks =
                     (\idx s bounds -> updateBounds idx (attached s.id n.id) n.ingress bounds)
                     ( -1, -1 )
 
-        updateConnections : Network -> Bounds -> NetworkConnections -> NetworkConnections
+        updateConnections : Network -> Bounds -> NetworkConnectionTypes -> NetworkConnectionTypes
         updateConnections n bounds connections =
             services
                 |> Util.indexedFoldl
                     (\nidx s connections -> update s.id n.id (connectionType s n (attached s.id n.id) nidx bounds) connections)
                     connections
     in
-        networks
-            |> List.foldl
-                (\network connections -> updateConnections network (firstAndLastConnection network) connections)
-                empty
+        NetworkConnections
+            networks
+            (networks
+                |> List.foldl
+                    (\network connections -> updateConnections network (firstAndLastConnection network) connections)
+                    empty
+            )

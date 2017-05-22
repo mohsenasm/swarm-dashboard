@@ -1,4 +1,4 @@
-module Components.Networks exposing (connections, header)
+module Components.Networks exposing (Connections, buildConnections, connections, header)
 
 import Html as H
 import Html.Attributes as A
@@ -6,6 +6,11 @@ import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import Docker.Types exposing (..)
 import Components.NetworkConnections as NetworkConnections exposing (..)
+
+
+type alias Connections =
+    NetworkConnections
+
 
 
 -- Geometry
@@ -106,7 +111,7 @@ head networks =
         svg
             [ width (toString (totalWidth networks))
             , height (toString widthStep)
-            , viewBox ("0 0 " ++ toString totalWidth ++ " " ++ toString widthStep)
+            , viewBox ("0 0 " ++ toString (totalWidth networks) ++ " " ++ toString widthStep)
             ]
             (networks |> List.indexedMap cap >> List.concat)
 
@@ -162,19 +167,21 @@ tails connections =
 -- Exposed compopnents
 
 
+buildConnections : List Service -> List Network -> Connections
+buildConnections =
+    NetworkConnections.build
+
+
 header : List Network -> H.Html msg
 header networks =
     H.th [ class "networks", A.style [ ( "width", (toString (totalWidth networks)) ++ "px" ) ] ] [ head networks ]
 
 
-connections : Service -> List Network -> NetworkConnections -> H.Html msg
-connections service allNetworks networkConnections =
+connections : Service -> Connections -> H.Html msg
+connections service networkConnections =
     let
-        connectionType network =
-            NetworkConnections.get ( service.id, network.id ) networkConnections
-
         connections =
-            List.map connectionType allNetworks
+            NetworkConnections.serviceConnections service networkConnections
     in
         H.td [ class "networks" ]
             [ attachments connections
