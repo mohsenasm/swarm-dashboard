@@ -110,17 +110,17 @@ build services networks =
                     (\idx s bounds -> updateBounds idx (attached s.id n.id) n.ingress bounds)
                     ( -1, -1 )
 
-        updateConnections : Network -> Bounds -> NetworkConnectionTypes -> NetworkConnectionTypes
-        updateConnections n bounds connections =
-            services
-                |> Util.indexedFoldl
-                    (\nidx s connections -> update s.id n.id (connectionType s n (attached s.id n.id) nidx bounds) connections)
-                    connections
+        updateConnections : Network -> NetworkConnectionTypes -> NetworkConnectionTypes
+        updateConnections n connections =
+            let
+                bounds =
+                    (firstAndLastConnection n)
+            in
+                services
+                    |> Util.indexedFoldl
+                        (\nidx s connections -> update s.id n.id (connectionType s n (attached s.id n.id) nidx bounds) connections)
+                        connections
     in
         NetworkConnections
             networks
-            (networks
-                |> List.foldl
-                    (\network connections -> updateConnections network (firstAndLastConnection network) connections)
-                    empty
-            )
+            (networks |> List.foldl updateConnections empty)
