@@ -1,15 +1,37 @@
 module Components.Networks exposing (Connections, buildConnections, connections, header)
 
+import Array exposing (Array)
 import Html as H
 import Html.Attributes as A
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import Docker.Types exposing (..)
 import Components.NetworkConnections as NetworkConnections exposing (..)
+import Util exposing (..)
 
 
 type alias Connections =
     NetworkConnections
+
+
+type alias Color =
+    String
+
+
+networkColors : Array Color
+networkColors =
+    Array.fromList
+        [ "rgb(215, 74, 136)"
+        , "rgb(243, 154, 155)"
+        , "rgb(169, 65, 144)"
+        , "rgb(249, 199, 160)"
+        , "rgb(263, 110, 141)"
+        ]
+
+
+networkColor : Int -> Color
+networkColor i =
+    Maybe.withDefault "white" (Array.get (i % Array.length networkColors) networkColors)
 
 
 
@@ -68,30 +90,30 @@ svgCircle ( cenx, ceny ) rad colour =
 -- Symbol pieces
 
 
-topLine : Int -> Svg msg
-topLine i =
-    svgLine ( columnCenter i, 0 ) ( columnCenter i, 31 ) 2 "white"
+topLine : Int -> Color -> Svg msg
+topLine i color =
+    svgLine ( columnCenter i, 0 ) ( columnCenter i, 31 ) 2 color
 
 
-bottomLine : Int -> Svg msg
-bottomLine i =
-    svgLine ( columnCenter i, 31 ) ( columnCenter i, 62 ) 2 "white"
+bottomLine : Int -> Color -> Svg msg
+bottomLine i color =
+    svgLine ( columnCenter i, 31 ) ( columnCenter i, 62 ) 2 color
 
 
-dot : Int -> Svg msg
-dot i =
-    svgCircle ( columnCenter i, 31 ) (widthStep / 3) "white"
+dot : Int -> Color -> Svg msg
+dot i color =
+    svgCircle ( columnCenter i, 31 ) (widthStep / 3) color
 
 
-fullLine : Int -> Svg msg
-fullLine i =
-    svgLine ( columnCenter i, 0 ) ( columnCenter i, 1 ) 2 "white"
+fullLine : Int -> Color -> Svg msg
+fullLine i color =
+    svgLine ( columnCenter i, 0 ) ( columnCenter i, 1 ) 2 color
 
 
-tcap : Int -> List (Svg msg)
-tcap i =
-    [ (svgLine ( (columnStart i) + widthStep / 6, 0 ) ( (columnStart i) + widthStep * 5 / 6, 0 ) 4 "white")
-    , svgLine ( columnCenter i, 0 ) ( columnCenter i, widthStep ) 2 "white"
+tcap : Int -> Color -> List (Svg msg)
+tcap i color =
+    [ (svgLine ( (columnStart i) + widthStep / 6, 0 ) ( (columnStart i) + widthStep * 5 / 6, 0 ) 4 color)
+    , svgLine ( columnCenter i, 0 ) ( columnCenter i, widthStep ) 2 color
     ]
 
 
@@ -104,7 +126,7 @@ head networks =
     let
         cap i network =
             if network.ingress then
-                tcap i
+                tcap i "white"
             else
                 []
     in
@@ -116,43 +138,51 @@ head networks =
             (networks |> List.indexedMap cap >> List.concat)
 
 
-attachments : List Connection -> Svg msg
-attachments connections =
+attachments : List Connection -> Array Color -> Svg msg
+attachments connections colors =
     let
         symbol : Int -> Connection -> List (Svg msg)
         symbol i connection =
-            case connection of
-                Through ->
-                    [ topLine i, bottomLine i ]
+            let
+                color =
+                    Maybe.withDefault "white" (Array.get i colors)
+            in
+                case connection of
+                    Through ->
+                        [ topLine i color, bottomLine i color ]
 
-                Start ->
-                    [ dot i, bottomLine i ]
+                    Start ->
+                        [ dot i color, bottomLine i color ]
 
-                Middle ->
-                    [ topLine i, dot i, bottomLine i ]
+                    Middle ->
+                        [ topLine i color, dot i color, bottomLine i color ]
 
-                End ->
-                    [ topLine i, dot i ]
+                    End ->
+                        [ topLine i color, dot i color ]
 
-                Only ->
-                    [ dot i ]
+                    Only ->
+                        [ dot i color ]
 
-                None ->
-                    []
+                    None ->
+                        []
     in
         svg
             [ width (toString (totalWidth connections)), height "62", viewBox ("0 0 " ++ toString (totalWidth connections) ++ " 62") ]
             (connections |> List.indexedMap symbol >> List.concat)
 
 
-tails : List Connection -> Svg msg
-tails connections =
+tails : List Connection -> Array Color -> Svg msg
+tails connections colors =
     let
         symbol i connection =
-            if List.member connection [ Start, Middle, Through ] then
-                [ fullLine i ]
-            else
-                []
+            let
+                color =
+                    Maybe.withDefault "white" (Array.get i colors)
+            in
+                if List.member connection [ Start, Middle, Through ] then
+                    [ fullLine i color ]
+                else
+                    []
     in
         svg
             [ width (toString (totalWidth connections))
@@ -182,8 +212,11 @@ connections service networkConnections =
     let
         connections =
             NetworkConnections.serviceConnections service networkConnections
+
+        colors =
+            networkConnections.networks |> Array.fromList << List.indexedMap (\i n -> iff n.ingress "white" (networkColor i))
     in
         H.td [ class "networks" ]
-            [ attachments connections
-            , H.div [] [ tails connections ]
+            [ attachments connections colors
+            , H.div [] [ tails connections colors ]
             ]
