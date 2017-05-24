@@ -29,10 +29,12 @@ const fetchData = () =>
   Promise.all([
     dockerAPIRequest('/nodes').then(JSON.parse),
     dockerAPIRequest('/services').then(JSON.parse),
+    dockerAPIRequest('/networks').then(JSON.parse),
     dockerAPIRequest('/tasks').then(JSON.parse)
-  ]).then(([nodes, services, tasks]) => ({
+  ]).then(([nodes, services, networks, tasks]) => ({
     nodes,
     services,
+    networks,
     tasks
   }));
 

@@ -50,13 +50,29 @@ and deploy with
 $ docker stack deploy -c compose.yml svc
 ```
 
+## Production use
+
+There are two considerations for any serious deployment of the dashboard:
+
+1. Security - the dashboard node.js server has access to the docker daemon unix socket
+   and runs on the manager, which makes it a significant attack surface (i.e. compromising
+   the dashboard's node server would give an attacker full control of the swarm)
+1. At the moment the interaction with the API is the first working implementation and
+   is not optimised at all. The API is read every 500 ms. Every 200 ms the full
+   data is sent to each open websocket connection. This translates into quite a
+   bit of I/O and network traffic and needs to be revisited in thefuture.
+
 ## Rough roadmap
 
 * Show more service details (published port, image name and version)
-* Show overlay networks
 * Node / Service / Task details panel
 * Reduce polling and network transfer
-* Show resources (CPU & Memory)
-* Harden for potential production use
+* Show node / task resources (CPU & Memory)
+* Improve security for potential production use
 
 Both feature requests and pull requests are welcome
+
+## Contributors
+
+* Viktor Charypar (owner, BDFL) - code, docs
+* Clementine Brown - design

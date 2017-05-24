@@ -3,7 +3,9 @@ module Components exposing (..)
 import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Util exposing (..)
 import Docker.Types exposing (..)
+import Components.Networks as Networks
 
 
 statusString : String -> String -> String
@@ -11,7 +13,7 @@ statusString state desiredState =
     if state == desiredState then
         state
     else
-        state ++ " -> " ++ desiredState
+        state ++ " → " ++ desiredState
 
 
 task : Service -> AssignedTask -> Html msg
@@ -31,19 +33,19 @@ task service { status, desiredState, containerSpec, slot } =
 
 
 serviceNode : Service -> TaskIndex -> Node -> Html msg
-serviceNode service tasksByNodeService node =
+serviceNode service taskAllocations node =
     let
         tasks =
-            Maybe.withDefault [] (Dict.get ( node.id, service.id ) tasksByNodeService)
+            Maybe.withDefault [] (Dict.get ( node.id, service.id ) taskAllocations)
     in
         td []
             [ ul [] (List.map (task service) tasks) ]
 
 
-service : List Node -> TaskIndex -> Service -> Html msg
-service nodes tasksByNodeService ({ name } as service) =
+serviceRow : List Node -> TaskIndex -> Networks.Connections -> Service -> Html msg
+serviceRow nodes taskAllocations networkConnections service =
     tr []
-        (th [] [ text name ] :: (List.map (serviceNode service tasksByNodeService) nodes))
+        (th [] [ text service.name ] :: (Networks.connections service networkConnections) :: (List.map (serviceNode service taskAllocations) nodes))
 
 
 node : Node -> Html msg
@@ -59,14 +61,7 @@ node node =
             ]
 
         nodeRole =
-            String.join " "
-                [ node.role
-                , (if leader then
-                    "(leader)"
-                   else
-                    ""
-                  )
-                ]
+            String.join " " [ node.role, iff leader "(leader)" "" ]
     in
         th [ classList classes ]
             [ strong [] [ text node.name ]
@@ -77,14 +72,18 @@ node node =
             ]
 
 
-swarmHeader : List Node -> Html msg
-swarmHeader nodes =
-    tr [] (th [] [ img [ src "docker_logo.svg" ] [] ] :: (nodes |> List.map node))
+swarmHeader : List Node -> List Network -> Html msg
+swarmHeader nodes networks =
+    tr [] ((th [] [ img [ src "docker_logo.svg" ] [] ]) :: Networks.header networks :: (nodes |> List.map node))
 
 
-swarmGrid : List Service -> List Node -> TaskIndex -> Html msg
-swarmGrid services nodes tasksByNodeService =
-    table []
-        [ thead [] [ swarmHeader nodes ]
-        , tbody [] (List.map (service nodes tasksByNodeService) services)
-        ]
+swarmGrid : List Service -> List Node -> List Network -> TaskIndex -> Html msg
+swarmGrid services nodes networks taskAllocations =
+    let
+        networkConnections =
+            Networks.buildConnections services networks
+    in
+        table []
+            [ thead [] [ swarmHeader nodes networks ]
+            , tbody [] (List.map (serviceRow nodes taskAllocations networkConnections) services)
+            ]
