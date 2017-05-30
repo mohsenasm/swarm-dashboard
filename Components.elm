@@ -28,7 +28,7 @@ task service { status, desiredState, containerSpec, slot } =
         slotLabel slot =
             case slot of
                 Just s ->
-                    "." ++ toString slot
+                    "." ++ toString s
 
                 Nothing ->
                     ""
