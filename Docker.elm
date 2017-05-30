@@ -21,7 +21,7 @@ withoutFailedTaskHistory : List AssignedTask -> List AssignedTask
 withoutFailedTaskHistory =
     let
         key { serviceId, slot } =
-            ( serviceId, slot )
+            ( serviceId, (Maybe.withDefault 0 slot) )
 
         latestRunning =
             List.sortBy (.status >> .timestamp >> Date.toTime)
