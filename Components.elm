@@ -25,11 +25,13 @@ task service { status, desiredState, containerSpec, slot } =
             , ( "running-old", status.state == "running" && service.containerSpec.image /= containerSpec.image )
             ]
 
-        prepend =
-            (++)
+        slotLabel slot =
+            case slot of
+                Just s ->
+                    "." ++ toString slot
 
-        slotLabel =
-            Maybe.map (toString >> prepend ".") >> Maybe.withDefault ""
+                Nothing ->
+                    ""
     in
         li [ classList classes ]
             [ text (service.name ++ slotLabel slot)
