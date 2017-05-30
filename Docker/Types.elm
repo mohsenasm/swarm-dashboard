@@ -74,7 +74,7 @@ type alias Task =
     { id : String
     , serviceId : String
     , nodeId : Maybe String
-    , slot : Int
+    , slot : Maybe Int
     , status : TaskStatus
     , desiredState : String
     , containerSpec : ContainerSpec
@@ -84,7 +84,7 @@ type alias Task =
 type alias PlannedTask =
     { id : String
     , serviceId : String
-    , slot : Int
+    , slot : Maybe Int
     , status : TaskStatus
     , desiredState : String
     , containerSpec : ContainerSpec
@@ -100,7 +100,7 @@ type alias AssignedTask =
     { id : String
     , serviceId : String
     , nodeId : String
-    , slot : Int
+    , slot : Maybe Int
     , status : TaskStatus
     , desiredState : String
     , containerSpec : ContainerSpec

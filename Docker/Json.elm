@@ -74,7 +74,7 @@ task =
         (Json.at [ "ID" ] Json.string)
         (Json.at [ "ServiceID" ] Json.string)
         (Json.maybe (Json.at [ "NodeID" ] Json.string))
-        (Json.at [ "Slot" ] Json.int)
+        (Json.maybe (Json.at [ "Slot" ] Json.int))
         (Json.at [ "Status" ] taskStatus)
         (Json.at [ "DesiredState" ] Json.string)
         (Json.at [ "Spec", "ContainerSpec" ] containerSpec)
