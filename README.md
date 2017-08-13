@@ -57,10 +57,11 @@ There are two considerations for any serious deployment of the dashboard:
 1. Security - the dashboard node.js server has access to the docker daemon unix socket
    and runs on the manager, which makes it a significant attack surface (i.e. compromising
    the dashboard's node server would give an attacker full control of the swarm)
-1. At the moment the interaction with the API is the first working implementation and
-   is not optimised at all. The API is read every 500 ms. Every 200 ms the full
-   data is sent to each open websocket connection. This translates into quite a
-   bit of I/O and network traffic and needs to be revisited in thefuture.
+1. The interaction with docker API is a fairly rough implementation and
+   is not very optimised. The server polls the API every 500 ms, publishing the
+   the response data to all open websockets if it changed since last time. There
+   is probably a better way to look for changes in the Swarm that could be used
+   in the future.
 
 ## Rough roadmap
 
