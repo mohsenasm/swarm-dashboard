@@ -66,7 +66,6 @@ There are two considerations for any serious deployment of the dashboard:
 
 * Show more service details (published port, image name and version)
 * Node / Service / Task details panel
-* Reduce polling and network transfer
 * Show node / task resources (CPU & Memory)
 * Improve security for potential production use
 
