@@ -7,8 +7,10 @@ const port = process.env.PORT || 8080;
 
 const baseOptions = {
   method: 'GET',
-  socketPath: '/var/run/docker.sock'
+  socketPath: '/var/run/docker.sock',
 };
+
+// Docker API integration
 
 const dockerAPIRequest = path => {
   return new Promise((res, rej) => {
@@ -30,20 +32,38 @@ const fetchData = () =>
     dockerAPIRequest('/nodes').then(JSON.parse),
     dockerAPIRequest('/services').then(JSON.parse),
     dockerAPIRequest('/networks').then(JSON.parse),
-    dockerAPIRequest('/tasks').then(JSON.parse)
+    dockerAPIRequest('/tasks').then(JSON.parse),
   ]).then(([nodes, services, networks, tasks]) => ({
     nodes,
     services,
     networks,
-    tasks
+    tasks,
   }));
 
-// start the polling
+// WebSocket pub-sub
 
-let latestData = {};
-setInterval(() => {
-  fetchData().then(it => (latestData = it));
-}, 500);
+const publish = (listeners, data) => {
+  listeners.forEach(listener => {
+    if (listener.readyState !== WebSocket.OPEN) return;
+
+    listener.send(JSON.stringify(data, null, 2));
+  });
+};
+
+const subscribe = (listeners, newListener) => {
+  return listeners.concat([newListener]);
+};
+
+const unsubscribe = (listeners, listener) => {
+  const id = listeners.indexOf(listener);
+  if (id < 0) return listeners;
+
+  return [].concat(listeners).splice(id, 1);
+};
+
+const dropClosed = listeners => {
+  return listeners.filter(ws => ws.readyState === WebSocket.OPEN);
+};
 
 // set up the application
 
@@ -55,24 +75,34 @@ app.get('/data', (req, res) => {
   fetchData().then(it => res.send(it)).catch(e => res.send(e.toString()));
 });
 
+// start the polling
+
+let listeners = [];
+setInterval(() => {
+  fetchData()
+    .then(it => {
+      listeners = dropClosed(listeners);
+      publish(listeners, it);
+    })
+    .catch(e => console.error('Could not publish', e));
+}, 500);
+
 // set up the server
 
 const server = createServer();
 const wsServer = new Server({
   path: '/stream',
-  server
+  server,
 });
 
 server.on('request', app);
 
 wsServer.on('connection', ws => {
-  const interval = setInterval(() => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(latestData, null, 2));
-    }
-  }, 200);
+  listeners = subscribe(listeners, ws) || [];
 
-  ws.on('close', () => clearInterval(interval));
+  ws.on('close', () => {
+    listeners = unsubscribe(listeners, ws) || [];
+  });
 });
 
 server.listen(port, () => {
