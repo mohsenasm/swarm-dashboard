@@ -6,6 +6,7 @@
     "es6": true
   },
   "rules": {
+    "consistent-return": "error",
     "no-console": "warn"
   }
 }
