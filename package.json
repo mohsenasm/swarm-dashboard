@@ -9,5 +9,10 @@
     "babel-register": "^6.24.1",
     "express": "^4.15.2",
     "ws": "^2.3.1"
+  },
+  "devDependencies": {
+    "babel-eslint": "^7.2.3",
+    "eslint": "^4.4.1",
+    "prettier": "^1.5.3"
   }
 }
