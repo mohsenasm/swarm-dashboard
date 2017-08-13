@@ -1,7 +1,9 @@
 import { request, createServer } from 'http';
+import { createHash } from 'crypto';
 
 import WebSocket, { Server } from 'ws';
 import express from 'express';
+import { sortBy, prop } from 'ramda';
 
 const port = process.env.PORT || 8080;
 
@@ -9,6 +11,9 @@ const baseOptions = {
   method: 'GET',
   socketPath: '/var/run/docker.sock',
 };
+
+const sha1OfData = data =>
+  createHash('sha1').update(JSON.stringify(data)).digest('hex');
 
 // Docker API integration
 
@@ -39,6 +44,12 @@ const fetchData = () =>
     networks,
     tasks,
   }));
+
+// Docker API returns networks in an undefined order, this
+// stabilizes the order for effective caching
+const stabilize = data => {
+  return { ...data, networks: sortBy(prop('Id'), data.networks) };
+};
 
 // WebSocket pub-sub
 
@@ -78,13 +89,24 @@ app.get('/data', (req, res) => {
 // start the polling
 
 let listeners = [];
+let lastData = {};
+let lastSha = '';
+
 setInterval(() => {
   fetchData()
     .then(it => {
       listeners = dropClosed(listeners);
-      publish(listeners, it);
+
+      const data = stabilize(it);
+      const sha = sha1OfData(data);
+
+      if (sha == lastSha) return;
+
+      lastSha = sha;
+      lastData = data;
+      publish(listeners, data);
     })
-    .catch(e => console.error('Could not publish', e));
+    .catch(e => console.error('Could not publish', e)); // eslint-disable-line no-console
 }, 500);
 
 // set up the server
@@ -99,6 +121,7 @@ server.on('request', app);
 
 wsServer.on('connection', ws => {
   listeners = subscribe(listeners, ws) || [];
+  publish([ws], lastData); // immediately send latest to the new listener
 
   ws.on('close', () => {
     listeners = unsubscribe(listeners, ws) || [];
@@ -106,7 +129,7 @@ wsServer.on('connection', ws => {
 });
 
 server.listen(port, () => {
-  console.log(`Listening on ${port}`);
+  console.log(`Listening on ${port}`); // eslint-disable-line no-console
 });
 
 export default server;
