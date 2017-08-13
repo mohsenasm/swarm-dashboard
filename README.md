@@ -59,7 +59,7 @@ There are two considerations for any serious deployment of the dashboard:
    the dashboard's node server would give an attacker full control of the swarm)
 1. The interaction with docker API is a fairly rough implementation and
    is not very optimised. The server polls the API every 500 ms, publishing the
-   the response data to all open websockets if it changed since last time. There
+   response data to all open websockets if it changed since last time. There
    is probably a better way to look for changes in the Swarm that could be used
    in the future.
 
