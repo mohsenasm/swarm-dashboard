@@ -1,7 +1,6 @@
 FROM node:8-alpine AS base
 
-RUN apk add --update tini curl \
-  && rm -r /var/cache
+RUN apk add --update tini curl && rm -r /var/cache
 ENTRYPOINT ["/sbin/tini", "--"]
 WORKDIR /home/node/app
 
@@ -16,7 +15,7 @@ RUN yarn install --production
 FROM node:6-slim AS elm-build
 WORKDIR /home/node/app
 
-RUN npm install -g elm --silent
+RUN npm install -g elm@0.18.0 --silent
 
 COPY elm-package.json ./
 RUN elm package install -y
@@ -32,6 +31,8 @@ WORKDIR /home/node/app
 COPY --from=dependencies /home/node/app/node_modules node_modules
 COPY --from=elm-build /home/node/app/client/ client
 COPY server server
+
+ENV PORT 8080
 
 HEALTHCHECK --interval=5s --timeout=3s \
   CMD curl --fail http://localhost:$PORT/_health || exit 1
