@@ -43,13 +43,18 @@ network =
         (Json.at [ "Ingress" ] Json.bool)
 
 
+filterEmptyNetworks : Maybe (List NetworkId) -> Json.Decoder (List NetworkId)
+filterEmptyNetworks networks =
+    Json.succeed (Maybe.withDefault [] networks)
+
+
 service : Json.Decoder RawService
 service =
     Json.map4 RawService
         (Json.at [ "ID" ] Json.string)
         (Json.at [ "Spec", "Name" ] Json.string)
         (Json.at [ "Spec", "TaskTemplate", "ContainerSpec" ] containerSpec)
-        (Json.at [ "Endpoint", "VirtualIPs" ] (Json.list (Json.at [ "NetworkID" ] Json.string)))
+        ((Json.maybe (Json.at [ "Endpoint", "VirtualIPs" ] (Json.list (Json.at [ "NetworkID" ] Json.string)))) |> Json.andThen filterEmptyNetworks)
 
 
 date : Json.Decoder Date
