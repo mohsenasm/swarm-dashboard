@@ -16,7 +16,7 @@ RUN yarn install --production
 FROM node:6-slim AS elm-build
 WORKDIR /home/node/app
 
-RUN npm install -g elm --silent
+RUN npm install -g elm@latest-0.18.0 --silent
 
 COPY elm-package.json ./
 RUN elm package install -y
