@@ -45,9 +45,16 @@ serviceNode service taskAllocations node =
     let
         tasks =
             Maybe.withDefault [] (Dict.get ( node.id, service.id ) taskAllocations)
+        forThisService (n, s) = 
+            s == service.id
+        tasksOfThisService = List.filter forThisService (Dict.keys taskAllocations)
+        noTaskNowhere = List.length tasksOfThisService == 0
     in
-        td []
-            [ ul [] (List.map (task service) tasks) ]
+        if noTaskNowhere then
+            td [ class "empty-service" ] []
+        else
+            td []
+                [ ul [] (List.map (task service) tasks) ]
 
 
 serviceRow : List Node -> TaskIndex -> Networks.Connections -> Service -> Html msg
