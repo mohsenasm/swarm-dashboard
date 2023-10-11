@@ -52,6 +52,101 @@ const stabilize = data => {
   return { ...data, networks: sortBy(prop('Id'), data.networks) };
 };
 
+const redact = data => {
+  let nodes = [];
+  let networks = [];
+  let services = [];
+  let tasks = [];
+
+  for (let i = 0; i < data.nodes.length; i++) {
+    const baseNode = data.nodes[i];
+    let node = {
+      "ID": baseNode["ID"],
+      "Description": {
+        "Hostname": baseNode["Description"]["Hostname"],
+      },
+      "Spec": {
+        "Role": baseNode["Spec"]["Role"],
+      },
+      "Status": {
+        "State": baseNode["Status"]["State"],
+        "Addr": baseNode["Status"]["Addr"],
+      },
+    };
+    if (baseNode["ManagerStatus"] !== undefined) {
+      node["ManagerStatus"] = {
+        "Leader": baseNode["ManagerStatus"]["Leader"],
+        "Reachability": baseNode["ManagerStatus"]["Reachability"],
+      }
+    }
+    nodes.push(node);
+  }
+
+  for (let i = 0; i < data.networks.length; i++) {
+    const baseNetwork = data.networks[i];
+    let network = {
+      "Id": baseNetwork["Id"],
+      "Name": baseNetwork["Name"],
+      "Ingress": baseNetwork["Ingress"],
+    };
+    networks.push(network);
+  }
+
+  for (let i = 0; i < data.services.length; i++) {
+    const baseService = data.services[i];
+    let service = {
+      "ID": baseService["ID"],
+      "Spec": {
+        "Name": baseService["Spec"]["Name"],
+        "TaskTemplate": {
+          "ContainerSpec": {
+            "Image": baseService["Spec"]["TaskTemplate"]["ContainerSpec"]["Image"]
+          },
+        },
+      },
+    };
+    if (baseService["Endpoint"] !== undefined) {
+      const _baseVIPs = baseService["Endpoint"]["VirtualIPs"];
+      if (_baseVIPs !== undefined && Array.isArray(_baseVIPs) && _baseVIPs.length > 0) {
+        let vips = []
+        for (let j = 0; j < _baseVIPs.length; j++) {
+          const _baseVIP = _baseVIPs[j];
+          vips.push({
+            "NetworkID": _baseVIP["NetworkID"],
+          })
+        }
+        service["Endpoint"]["VirtualIPs"] = vips
+      }
+    }
+    services.push(service);
+  }
+
+  for (let i = 0; i < data.tasks.length; i++) {
+    const baseTask = data.tasks[i];
+    let task = {
+      "ID": baseTask["ID"],
+      "ServiceID": baseTask["ServiceID"],
+      "Status": {
+        "Timestamp": baseTask["Status"]["Timestamp"],
+        "State": baseTask["Status"]["State"],
+      },
+      "DesiredState": baseTask["DesiredState"],
+      "Spec": {
+        "ContainerSpec": {
+          "Image": baseTask["Spec"]["ContainerSpec"]["Image"]
+        }
+      },
+    };
+    if (baseTask["NodeID"] !== undefined)
+      task["NodeID"] = baseTask["NodeID"]
+    if (baseTask["Slot"] !== undefined)
+      task["Slot"] = baseTask["Slot"]
+    tasks.push(task);
+  }
+
+  return { nodes, networks, services, tasks };
+};
+
 // WebSocket pub-sub
 
 const publish = (listeners, data) => {
@@ -84,7 +179,7 @@ const app = express();
 app.use(express.static('client'));
 app.get('/_health', (req, res) => res.end());
 app.get('/data', (req, res) => {
-  fetchData().then(it => res.send(it)).catch(e => res.send(e.toString()));
+  fetchData().then(it => res.send(redact(it))).catch(e => res.send(e.toString()));
 });
 
 // start the polling
@@ -98,7 +193,7 @@ setInterval(() => {
     .then(it => {
       listeners = dropClosed(listeners);
 
-      const data = stabilize(it);
+      const data = stabilize(redact(it));
       const sha = sha1OfData(data);
 
       if (sha == lastSha) return;
