@@ -115,7 +115,9 @@ const redact = data => {
             "NetworkID": _baseVIP["NetworkID"],
           })
         }
-        service["Endpoint"]["VirtualIPs"] = vips
+        service["Endpoint"] = {
+          "VirtualIPs": vips
+        }
       }
     }
     services.push(service);
