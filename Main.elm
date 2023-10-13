@@ -69,7 +69,10 @@ update msg model =
                     ( { model | swarm = serverData, tasks = groupBy taskIndexKey serverData.assignedTasks }, Cmd.none )
 
                 Err error ->
-                    ( { model | errors = error :: model.errors }, Cmd.none )
+                    if String.contains "WrongAuthToken" error then
+                        ( { model | errors = error :: model.errors }, authTokenGetter )
+                    else
+                        ( { model | errors = error :: model.errors }, Cmd.none )
 
         UrlChange location ->
             ( model, Cmd.none )
@@ -77,7 +80,10 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    WebSocket.listen (model.webSocketUrl ++ "?authToken=" ++ model.authToken) Receive
+    if String.isEmpty model.authToken then
+        Sub.none
+    else
+        WebSocket.listen (model.webSocketUrl ++ "?authToken=" ++ model.authToken) Receive
 
 
 view : Model -> Html Msg

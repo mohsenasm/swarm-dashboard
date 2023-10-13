@@ -244,6 +244,7 @@ wsServer.on('connection', (ws, req) => {
     params = url.parse(req.url, true).query; // { authToken: 'ajsdhakjsdhak' } for 'ws://localhost:1234/?authToken=ajsdhakjsdhak'
   if (params)
     authToken = params.authToken;
+
   if (tokenStore.has(authToken)) {
     tokenStore.delete(authToken);
 
@@ -253,7 +254,10 @@ wsServer.on('connection', (ws, req) => {
       listeners = unsubscribe(listeners, ws) || [];
     });
   } else {
-    // ws.close(); // terminate this connection
+    ws.send("WrongAuthToken");
+    setTimeout(() => {
+      ws.close(); // terminate this connection
+    }, 10000);
   }
 });
 
