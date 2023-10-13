@@ -8,7 +8,7 @@ import WebSocket
 import Docker.Types exposing (..)
 import Docker exposing (fromJson)
 import Components as UI
-
+import Http
 
 localWebsocket : Navigation.Location -> String
 localWebsocket location =
@@ -20,6 +20,7 @@ localWebsocket location =
 
 type alias Model =
     { webSocketUrl : String
+    , authToken : String
     , swarm : Docker
     , tasks : TaskIndex
     , errors : List String
@@ -27,24 +28,41 @@ type alias Model =
 
 
 type Msg
-    = UrlChange Navigation.Location
+    = GetAuthToken
+    | AuthTokenReceived (Result Http.Error String)
+    | UrlChange Navigation.Location
     | Receive String
 
+authTokenGetter : Cmd Msg
+authTokenGetter =
+    Http.send AuthTokenReceived (Http.getString "/auth_token")
 
 init : Navigation.Location -> ( Model, Cmd Msg )
 init location =
     ( { webSocketUrl = localWebsocket location
+      , authToken = ""
       , swarm = Docker.empty
       , tasks = Dict.empty
       , errors = []
       }
-    , Cmd.none
+    , authTokenGetter
     )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        GetAuthToken ->
+            ( model, authTokenGetter )
+        
+        AuthTokenReceived result ->
+            case result of
+                Ok authToken ->
+                    ( { model | authToken = authToken }, Cmd.none )
+
+                Err httpError ->
+                    ( { model | errors = (toString httpError) :: model.errors }, Cmd.none )  
+
         Receive serverJson ->
             case fromJson serverJson of
                 Ok serverData ->
@@ -59,7 +77,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    WebSocket.listen model.webSocketUrl Receive
+    WebSocket.listen (model.webSocketUrl ++ "?authToken=" ++ model.authToken) Receive
 
 
 view : Model -> Html Msg

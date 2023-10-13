@@ -4,9 +4,15 @@ const { createHash } = require('crypto');
 const WebSocket = require('ws');
 const Server = WebSocket.Server;
 const express = require('express');
+const basicAuth = require('express-basic-auth')
+const { v4: uuidv4 } = require('uuid');
+const url = require('url');
 const { sortBy, prop } = require('ramda');
 
 const port = process.env.PORT || 8080;
+const realm = process.env.REALM || "KuW2i9GdLIkql";
+const username = process.env.USERNAME || "admin";
+const password = process.env.PASSWORD || "supersecret";
 
 const baseOptions = {
   method: 'GET',
@@ -176,13 +182,27 @@ const dropClosed = listeners => {
 
 // set up the application
 
+users = {};
+users[username] = password;
+const basicAuthConfig = () => basicAuth({
+  users: users,
+  challenge: true,
+  realm: realm,
+})
+const tokenStore = new Set();
+
 const app = express();
 
 app.use(express.static('client'));
 app.get('/_health', (req, res) => res.end());
-app.get('/data', (req, res) => {
-  fetchData().then(it => res.send(redact(it))).catch(e => res.send(e.toString()));
+app.get('/auth_token', basicAuthConfig(), (req, res) => {
+  const token = uuidv4();
+  tokenStore.add(token);
+  res.send(token);
 });
+// app.get('/data', (req, res) => {
+//   fetchData().then(it => res.send(redact(it))).catch(e => res.send(e.toString()));
+// });
 
 // start the polling
 
@@ -217,13 +237,24 @@ const wsServer = new Server({
 
 server.on('request', app);
 
-wsServer.on('connection', ws => {
-  listeners = subscribe(listeners, ws) || [];
-  publish([ws], lastData); // immediately send latest to the new listener
+wsServer.on('connection', (ws, req) => {
+  let params = undefined;
+  let authToken = undefined;
+  if (req)
+    params = url.parse(req.url, true).query; // { authToken: 'ajsdhakjsdhak' } for 'ws://localhost:1234/?authToken=ajsdhakjsdhak'
+  if (params)
+    authToken = params.authToken;
+  if (tokenStore.has(authToken)) {
+    tokenStore.delete(authToken);
 
-  ws.on('close', () => {
-    listeners = unsubscribe(listeners, ws) || [];
-  });
+    listeners = subscribe(listeners, ws) || [];
+    publish([ws], lastData); // immediately send latest to the new listener
+    ws.on('close', () => {
+      listeners = unsubscribe(listeners, ws) || [];
+    });
+  } else {
+    // ws.close(); // terminate this connection
+  }
 });
 
 server.listen(port, () => {

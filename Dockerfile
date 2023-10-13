@@ -1,4 +1,4 @@
-FROM node:8-alpine AS base
+FROM node:10-alpine AS base
 
 RUN apk add --update tini curl \
   && rm -r /var/cache

@@ -10,6 +10,9 @@ services:
     - 8081:8081
     environment:
       PORT: 8081
+      REALM: "KuW2i9GdLIkql"
+      USERNAME: "admin"
+      PASSWORD: "supersecret"
     deploy:
       replicas: 1
       update_config:
