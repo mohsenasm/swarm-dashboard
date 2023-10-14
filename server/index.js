@@ -1,8 +1,9 @@
-const { request, createServer } = require('http');
+var fs = require('fs');
+var http = require('http');
+var https = require('https');
 const { createHash } = require('crypto');
 
-const WebSocket = require('ws');
-const Server = WebSocket.Server;
+const ws = require('ws');
 const express = require('express');
 const basicAuth = require('express-basic-auth')
 const { v4: uuidv4 } = require('uuid');
@@ -13,6 +14,9 @@ const port = process.env.PORT || 8080;
 const realm = process.env.REALM || "KuW2i9GdLIkql";
 const username = process.env.USERNAME || "admin";
 const password = process.env.PASSWORD || "supersecret";
+const enableHTTPS = process.env.ENABLE_HTTPS === "true"
+const legoPath = process.env.LEGO_PATH
+const httpsHostname = process.env.HTTPS_HOSTNAME
 
 const baseOptions = {
   method: 'GET',
@@ -28,7 +32,7 @@ const dockerAPIRequest = path => {
   return new Promise((res, rej) => {
     let buffer = '';
 
-    const r = request({ ...baseOptions, path }, response => {
+    const r = http.request({ ...baseOptions, path }, response => {
       response.on('data', chunk => (buffer = buffer + chunk));
       response.on('end', () => res(buffer));
     });
@@ -159,7 +163,7 @@ const redact = data => {
 
 const publish = (listeners, data) => {
   listeners.forEach(listener => {
-    if (listener.readyState !== WebSocket.OPEN) return;
+    if (listener.readyState !== ws.OPEN) return;
 
     listener.send(JSON.stringify(data, null, 2));
   });
@@ -177,7 +181,7 @@ const unsubscribe = (listeners, listener) => {
 };
 
 const dropClosed = listeners => {
-  return listeners.filter(ws => ws.readyState === WebSocket.OPEN);
+  return listeners.filter(ws => ws.readyState === ws.OPEN);
 };
 
 // set up the application
@@ -227,17 +231,7 @@ setInterval(() => {
     .catch(e => console.error('Could not publish', e)); // eslint-disable-line no-console
 }, 500);
 
-// set up the server
-
-const server = createServer();
-const wsServer = new Server({
-  path: '/stream',
-  server,
-});
-
-server.on('request', app);
-
-wsServer.on('connection', (ws, req) => {
+function onWSConnection(ws, req) {
   let params = undefined;
   let authToken = undefined;
   if (req)
@@ -259,8 +253,35 @@ wsServer.on('connection', (ws, req) => {
       ws.close(); // terminate this connection
     }, 10000);
   }
-});
+}
 
-server.listen(port, () => {
-  console.log(`Listening on ${port}`); // eslint-disable-line no-console
-});
+
+// set up the server
+
+if (enableHTTPS) {
+  const privateKey = fs.readFileSync(legoPath + '/certificates/' + httpsHostname + '.key', 'utf8');
+  const certificate = fs.readFileSync(legoPath + '/certificates/' + httpsHostname + '.crt', 'utf8');
+  const credentials = { key: privateKey, cert: certificate };
+
+  const httpsServer = https.createServer(credentials);
+  httpsServer.on('request', app);
+  const wsServer = new ws.Server({
+    path: '/stream',
+    server: httpsServer,
+  });
+  wsServer.on('connection', onWSConnection);
+  httpsServer.listen(port, () => {
+    console.log(`HTTPS server listening on ${port}`); // eslint-disable-line no-console
+  });
+} else {
+  const httpServer = http.createServer();
+  httpServer.on('request', app);
+  const wsServer = new ws.Server({
+    path: '/stream',
+    server: httpServer,
+  });
+  wsServer.on('connection', onWSConnection);
+  httpServer.listen(port, () => {
+    console.log(`HTTP server listening on ${port}`); // eslint-disable-line no-console
+  });
+}

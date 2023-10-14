@@ -5,14 +5,22 @@ services:
     build: .
     image: localhost:5000/dashboard
     volumes:
-    - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - lego-files:/lego-files
     ports:
-    - 8081:8081
+      - 8081:8081
     environment:
       PORT: 8081
       REALM: "KuW2i9GdLIkql"
       USERNAME: "admin"
       PASSWORD: "supersecret"
+      ENABLE_HTTPS: "false"
+      # ENABLE_HTTPS: "true"
+      # HTTPS_HOSTNAME: "example.com"
+      # LEGO_NEW_COMMAND_ARGS: "--accept-tos --email=you@example.com --domains=example.com --dns cloudflare run"
+      # LEGO_RENEW_COMMAND_ARGS: "--accept-tos --email=you@example.com --domains=example.com --dns cloudflare renew"
+      # CLOUDFLARE_EMAIL: "you@example.com"
+      # CLOUDFLARE_API_KEY: "yourprivatecloudflareapikey"
     deploy:
       replicas: 1
       update_config:
@@ -22,3 +30,6 @@ services:
       placement:
         constraints:
           - node.role == manager
+
+volumes:
+  lego-files:
