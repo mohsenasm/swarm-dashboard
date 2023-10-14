@@ -33,7 +33,10 @@ COPY server server
 COPY server.sh server.sh
 COPY crontab /var/spool/cron/crontabs/root
 
-HEALTHCHECK --interval=5s --timeout=3s \
-  CMD curl --fail http://localhost:$PORT/_health || exit 1
+# HEALTHCHECK --interval=5s --timeout=3s \
+#   CMD curl --fail http://localhost:$PORT/_health || exit 1
+# HEALTHCHECK --interval=5s --timeout=3s \
+#   CMD curl --insecure --fail https://localhost:$PORT/_health || exit 1
+
 # Run under Tini
 CMD ["sh", "server.sh"]
