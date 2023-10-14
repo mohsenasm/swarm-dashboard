@@ -30,18 +30,34 @@ version: "3"
 
 services:
   dashboard:
-    image: charypar/swarm-dashboard
+    image: mohsenasm/swarm-dashboard
     volumes:
-    - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - lego-files:/lego-files
     ports:
-    - 8080:8080
+      - 8081:8081
     environment:
-      PORT: 8080
+      PORT: 8081
+      ENABLE_AUTHENTICATION: "false"
+      # ENABLE_AUTHENTICATION: "true"
+      # AUTHENTICATION_REALM: "KuW2i9GdLIkql"
+      # USERNAME: "admin"
+      # PASSWORD: "supersecret"
+      ENABLE_HTTPS: "false"
+      # ENABLE_HTTPS: "true"
+      # HTTPS_HOSTNAME: "example.com"
+      # LEGO_NEW_COMMAND_ARGS: "--accept-tos --email=you@example.com --domains=example.com --dns cloudflare run"
+      # LEGO_RENEW_COMMAND_ARGS: "--accept-tos --email=you@example.com --domains=example.com --dns cloudflare renew"
+      # CLOUDFLARE_EMAIL: "you@example.com"
+      # CLOUDFLARE_API_KEY: "yourprivatecloudflareapikey"
     deploy:
       replicas: 1
       placement:
         constraints:
           - node.role == manager
+
+volumes:
+  lego-files:
 ```
 
 and deploy with
@@ -49,6 +65,17 @@ and deploy with
 ```
 $ docker stack deploy -c compose.yml svc
 ```
+
+## Security
+
+In this fork we have added some security measures:
+
++ We don't send the whole docker event data. The [main repo](https://github.com/charypar/swarm-dashboard) sends everything, including environment variables (someone might have stored some passwords in them, by mistake!).
+
++ Using the `ENABLE_AUTHENTICATION` environment variable, there is an option to use `Basic Auth`. The WebSocket server will close the connection if it does not receive a valid authentication token.
+
++ Using the `ENABLE_HTTPS` environment variable, there is an option to use `HTTPS` and `WSS`. We have Let’s Encrypt integration with the DNS challenge.
+
 
 ## Production use
 
@@ -62,6 +89,7 @@ There are two considerations for any serious deployment of the dashboard:
    response data to all open websockets if it changed since last time. There
    is probably a better way to look for changes in the Swarm that could be used
    in the future.
+
 
 ## Rough roadmap
 

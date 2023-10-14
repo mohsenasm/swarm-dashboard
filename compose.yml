@@ -11,9 +11,11 @@ services:
       - 8081:8081
     environment:
       PORT: 8081
-      REALM: "KuW2i9GdLIkql"
-      USERNAME: "admin"
-      PASSWORD: "supersecret"
+      ENABLE_AUTHENTICATION: "false"
+      # ENABLE_AUTHENTICATION: "true"
+      # AUTHENTICATION_REALM: "KuW2i9GdLIkql"
+      # USERNAME: "admin"
+      # PASSWORD: "supersecret"
       ENABLE_HTTPS: "false"
       # ENABLE_HTTPS: "true"
       # HTTPS_HOSTNAME: "example.com"

@@ -11,7 +11,8 @@ const url = require('url');
 const { sortBy, prop } = require('ramda');
 
 const port = process.env.PORT || 8080;
-const realm = process.env.REALM || "KuW2i9GdLIkql";
+const realm = process.env.AUTHENTICATION_REALM || "KuW2i9GdLIkql";
+const enableAuthentication = process.env.ENABLE_AUTHENTICATION === "true"
 const username = process.env.USERNAME || "admin";
 const password = process.env.PASSWORD || "supersecret";
 const enableHTTPS = process.env.ENABLE_HTTPS === "true"
@@ -199,11 +200,18 @@ const app = express();
 
 app.use(express.static('client'));
 app.get('/_health', (req, res) => res.end());
-app.get('/auth_token', basicAuthConfig(), (req, res) => {
-  const token = uuidv4();
-  tokenStore.add(token);
-  res.send(token);
-});
+if (enableAuthentication) {
+  app.get('/auth_token', basicAuthConfig(), (req, res) => {
+    const token = uuidv4();
+    tokenStore.add(token);
+    res.send(token);
+  });
+} else {
+  app.get('/auth_token', (req, res) => {
+    res.send("no-auth-token-needed");
+  });
+}
+
 // app.get('/data', (req, res) => {
 //   fetchData().then(it => res.send(redact(it))).catch(e => res.send(e.toString()));
 // });
@@ -239,8 +247,10 @@ function onWSConnection(ws, req) {
   if (params)
     authToken = params.authToken;
 
-  if (tokenStore.has(authToken)) {
-    tokenStore.delete(authToken);
+  if (!enableAuthentication || tokenStore.has(authToken)) {
+    if (enableAuthentication) {
+      tokenStore.delete(authToken);
+    }
 
     listeners = subscribe(listeners, ws) || [];
     publish([ws], lastData); // immediately send latest to the new listener
