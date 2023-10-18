@@ -78,7 +78,9 @@ const metricRequest = (url) => {
 
 const fetchMetrics = (nodeExporterIPs) => {
   let promises = [];
+  console.log("nodeExporterIPs:", nodeExporterIPs)
   for (let i = 0; i < nodeExporterIPs.length; i++) {
+    console.log("url:", `http://${nodeExporterIPs[i]}:9100/metrics`)
     promises.push(metricRequest(`http://${nodeExporterIPs[i]}:9100/metrics`).then(parsePrometheusTextFormat));
   }
   return Promise.all(promises);
@@ -241,7 +243,7 @@ if (enableAuthentication) {
 }
 
 app.get('/debug-docker-data', (req, res) => {
-  dockerAPIRequest().then(it => res.send(it)).catch(e => res.send(e.toString()));
+  fetchDockerData().then(it => res.send(it)).catch(e => res.send(e.toString()));
 });
 
 app.get('/debug-metrics', (req, res) => {
