@@ -16,9 +16,10 @@ const realm = process.env.AUTHENTICATION_REALM || "KuW2i9GdLIkql";
 const enableAuthentication = process.env.ENABLE_AUTHENTICATION === "true"
 const username = process.env.USERNAME || "admin";
 const password = process.env.PASSWORD || "supersecret";
-const enableHTTPS = process.env.ENABLE_HTTPS === "true"
-const legoPath = process.env.LEGO_PATH
-const httpsHostname = process.env.HTTPS_HOSTNAME
+const enableHTTPS = process.env.ENABLE_HTTPS === "true";
+const legoPath = process.env.LEGO_PATH;
+const httpsHostname = process.env.HTTPS_HOSTNAME;
+const nodeExporterFullServiceName = process.env.NODE_EXPORTER_FULL_SERVICE_NAME || "";
 
 
 const sha1OfData = data =>
@@ -93,11 +94,14 @@ const stabilize = data => {
   return { ...data, networks: sortBy(prop('Id'), data.networks) };
 };
 
-const redactDockerData = data => {
+const parseAndRedactDockerData = data => {
   let nodes = [];
   let networks = [];
   let services = [];
   let tasks = [];
+
+  let nodeExporterServiceID = undefined;
+  let runningNodeExportes = [];
 
   for (let i = 0; i < data.nodes.length; i++) {
     const baseNode = data.nodes[i];
@@ -162,6 +166,12 @@ const redactDockerData = data => {
       }
     }
     services.push(service);
+
+    if (nodeExporterFullServiceName !== "") {
+      if (nodeExporterFullServiceName === baseService["Spec"]["Name"]) {
+        nodeExporterServiceID = baseService["ID"];
+      }
+    }
   }
 
   for (let i = 0; i < data.tasks.length; i++) {
@@ -185,9 +195,29 @@ const redactDockerData = data => {
     if (baseTask["Slot"] !== undefined)
       task["Slot"] = baseTask["Slot"]
     tasks.push(task);
+
+    if (nodeExporterServiceID !== undefined) {
+      if ((nodeExporterServiceID === baseTask["ServiceID"]) &&
+        (baseTask["Status"]["State"] === "running") &&
+        (baseTask["NodeID"] !== undefined) &&
+        (baseTask["NetworksAttachments"] !== undefined)) {
+        let ipList = [];
+        // TODO: we use ip of the accessible network instead of ipList[0]
+        for (let j = 0; j < baseTask["NetworksAttachments"].length; j++) {
+          for (let k = 0; k < baseTask["NetworksAttachments"][j]["Addresses"].length; k++) {
+            let ip = baseTask["NetworksAttachments"][j]["Addresses"][k];
+            ipList.push(ip.split("/")[0]);
+          }
+        }
+        runningNodeExportes.push({ NodeID: baseTask["NodeID"], Address: ipList[0] });
+      }
+    }
   }
 
-  return { nodes, networks, services, tasks };
+  return {
+    data: { nodes, networks, services, tasks },
+    runningNodeExportes
+  };
 };
 
 // WebSocket pub-sub
@@ -247,12 +277,13 @@ app.get('/debug-docker-data', (req, res) => {
 });
 
 app.get('/debug-metrics', (req, res) => {
-  fetchMetrics(req.query.ips).then(it => res.send(it)).catch(e => res.send(e.toString()));
+  fetchMetrics(lastRunningNodeExportes.map(({ Address }) => Address)).then(it => res.send(it)).catch(e => res.send(e.toString()));
 });
 
 // start the polling
 
 let listeners = [];
+let lastRunningNodeExportes = {};
 let lastData = {};
 let lastSha = '';
 
@@ -261,13 +292,15 @@ setInterval(() => {
     .then(it => {
       listeners = dropClosed(listeners);
 
-      const data = stabilize(redactDockerData(it));
+      let { data, runningNodeExportes } = parseAndRedactDockerData(it);
+      data = stabilize(data);
       const sha = sha1OfData(data);
 
       if (sha == lastSha) return;
 
       lastSha = sha;
       lastData = data;
+      lastRunningNodeExportes = runningNodeExportes;
       publish(listeners, data);
     })
     .catch(e => console.error('Could not publish', e)); // eslint-disable-line no-console
