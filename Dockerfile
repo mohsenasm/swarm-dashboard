@@ -11,12 +11,12 @@ RUN yarn install --production
 
 # elm doesn't work under alpine 6 or 8
 FROM node:10.16.0-buster-slim AS elm-build
-WORKDIR /home/node/app
 RUN npm install --unsafe-perm -g elm@latest-0.18.0 --silent
 RUN apt-get update; apt-get install -y netbase
-COPY elm-package.json ./
+WORKDIR /home/node/app/elm-client
+COPY ./elm-client/elm-package.json .
 RUN elm package install -y
-COPY . .
+COPY ./elm-client/ /home/node/app/elm-client/
 RUN elm make Main.elm --output=client/index.js
 
 FROM base AS release
@@ -28,11 +28,12 @@ RUN wget -O lego_v4.14.2_linux_amd64.tar.gz https://github.com/go-acme/lego/rele
 ENV LEGO_PATH=/lego-files
 
 COPY --from=dependencies /home/node/app/node_modules node_modules
-COPY --from=elm-build /home/node/app/client/ client
+COPY --from=elm-build /home/node/app/elm-client/client/ client
 COPY server server
 COPY server.sh server.sh
 COPY crontab /var/spool/cron/crontabs/root
 
+# ENV PORT=8080
 # HEALTHCHECK --interval=5s --timeout=3s \
 #   CMD curl --fail http://localhost:$PORT/_health || exit 1
 # HEALTHCHECK --interval=5s --timeout=3s \

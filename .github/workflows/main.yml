@@ -7,7 +7,7 @@ on:
   push:
     branches:
       - 'master'
-      - 'dev_security'
+      - 'dev_stats'
     tags:
       - 'v*'
 
