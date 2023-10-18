@@ -58,6 +58,7 @@ Vagrant.configure("2") do |config|
     SHELL
   end
 
+  # config.vm.provision "shell", run: 'always', inline: <<-SHELL
   config.vm.provision "shell", inline: <<-SHELL
     echo 'docker:docker' | sudo chpasswd
   SHELL

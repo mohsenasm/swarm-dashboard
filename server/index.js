@@ -2,6 +2,7 @@ var fs = require('fs');
 var http = require('http');
 var https = require('https');
 const { createHash } = require('crypto');
+const parsePrometheusTextFormat = require('parse-prometheus-text-format');
 
 const ws = require('ws');
 const express = require('express');
@@ -19,21 +20,22 @@ const enableHTTPS = process.env.ENABLE_HTTPS === "true"
 const legoPath = process.env.LEGO_PATH
 const httpsHostname = process.env.HTTPS_HOSTNAME
 
-const baseOptions = {
-  method: 'GET',
-  socketPath: '/var/run/docker.sock',
-};
 
 const sha1OfData = data =>
   createHash('sha1').update(JSON.stringify(data)).digest('hex');
 
 // Docker API integration
 
+const dockerRequestBaseOptions = {
+  method: 'GET',
+  socketPath: '/var/run/docker.sock',
+};
+
 const dockerAPIRequest = path => {
   return new Promise((res, rej) => {
     let buffer = '';
 
-    const r = http.request({ ...baseOptions, path }, response => {
+    const r = http.request({ ...dockerRequestBaseOptions, path }, response => {
       response.on('data', chunk => (buffer = buffer + chunk));
       response.on('end', () => res(buffer));
     });
@@ -44,7 +46,7 @@ const dockerAPIRequest = path => {
   });
 };
 
-const fetchData = () =>
+const fetchDockerData = () =>
   Promise.all([
     dockerAPIRequest('/nodes').then(JSON.parse),
     dockerAPIRequest('/services').then(JSON.parse),
@@ -57,13 +59,39 @@ const fetchData = () =>
     tasks,
   }));
 
+// Fetch metrics
+
+const metricRequest = (url) => {
+  return new Promise((res, rej) => {
+    let buffer = '';
+
+    const r = http.request(url, response => {
+      response.on('data', chunk => (buffer = buffer + chunk));
+      response.on('end', () => res(buffer));
+    });
+
+    r.on('error', rej);
+
+    r.end();
+  });
+};
+
+const fetchMetrics = (nodeExporterIPs) => {
+  let promises = [];
+  for (let i = 0; i < nodeExporterIPs.length; i++) {
+    promises.push(metricRequest(`http://${nodeExporterIPs[i]}:9100/metrics`).then(parsePrometheusTextFormat));
+  }
+  return Promise.all(promises);
+}
+
+
 // Docker API returns networks in an undefined order, this
 // stabilizes the order for effective caching
 const stabilize = data => {
   return { ...data, networks: sortBy(prop('Id'), data.networks) };
 };
 
-const redact = data => {
+const redactDockerData = data => {
   let nodes = [];
   let networks = [];
   let services = [];
@@ -212,9 +240,13 @@ if (enableAuthentication) {
   });
 }
 
-// app.get('/data', (req, res) => {
-//   fetchData().then(it => res.send(redact(it))).catch(e => res.send(e.toString()));
-// });
+app.get('/debug-docker-data', (req, res) => {
+  dockerAPIRequest().then(it => res.send(it)).catch(e => res.send(e.toString()));
+});
+
+app.get('/debug-metrics', (req, res) => {
+  fetchMetrics(req.query.ips).then(it => res.send(it)).catch(e => res.send(e.toString()));
+});
 
 // start the polling
 
@@ -223,11 +255,11 @@ let lastData = {};
 let lastSha = '';
 
 setInterval(() => {
-  fetchData()
+  fetchDockerData()
     .then(it => {
       listeners = dropClosed(listeners);
 
-      const data = stabilize(redact(it));
+      const data = stabilize(redactDockerData(it));
       const sha = sha1OfData(data);
 
       if (sha == lastSha) return;

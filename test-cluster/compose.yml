@@ -1,0 +1,26 @@
+version: "3"
+
+services:
+  swarm-dashboard:
+    image: mohsenasm/swarm-dashboard:dev_stats
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 8080:8080
+    environment:
+      PORT: 8080
+      ENABLE_AUTHENTICATION: "false"
+      ENABLE_HTTPS: "false"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+  
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.6.1
+    volumes:
+      - '/:/host:ro'
+    command:
+      - '--path.rootfs=/host'
+    deploy:
+      mode: global
