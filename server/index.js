@@ -254,7 +254,7 @@ const addMetricsToData = ({ data, runningNodeExportes }, okCallback, errorCallba
               let free = findMetricValue(metricsOfThisNode, "node_filesystem_avail_bytes", [{ name: "mountpoint", value: "/" }]);
               let total = findMetricValue(metricsOfThisNode, "node_filesystem_size_bytes", [{ name: "mountpoint", value: "/" }]);
               if ((free !== undefined) && (total !== undefined)) {
-                node.diskFullness = (total - free) / total;
+                node.diskFullness = Math.ceil((total - free) * 100 / total);
               }
             }
           }
