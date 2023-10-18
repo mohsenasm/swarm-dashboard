@@ -79,14 +79,11 @@ const metricRequest = (url) => {
 
 const fetchMetrics = (nodeExporterIPs) => {
   let promises = [];
-  console.log("nodeExporterIPs:", nodeExporterIPs)
   for (let i = 0; i < nodeExporterIPs.length; i++) {
-    console.log("url:", `http://${nodeExporterIPs[i]}:9100/metrics`)
     promises.push(metricRequest(`http://${nodeExporterIPs[i]}:9100/metrics`).then(parsePrometheusTextFormat));
   }
   return Promise.all(promises);
 }
-
 
 // Docker API returns networks in an undefined order, this
 // stabilizes the order for effective caching
@@ -209,7 +206,7 @@ const parseAndRedactDockerData = data => {
             ipList.push(ip.split("/")[0]);
           }
         }
-        runningNodeExportes.push({ NodeID: baseTask["NodeID"], Address: ipList[0] });
+        runningNodeExportes.push({ nodeID: baseTask["NodeID"], address: ipList[0] });
       }
     }
   }
@@ -219,6 +216,59 @@ const parseAndRedactDockerData = data => {
     runningNodeExportes
   };
 };
+
+const findMetricValue = (metrics, name, labels) => {
+  for (let i = 0; i < metrics.length; i++) {
+    const metricsParent = metrics[i];
+    if (metricsParent.name === name) {
+      for (let j = 0; j < metricsParent.metrics.length; j++) {
+        const metric = metricsParent.metrics[j];
+        let allLabelsExists = true;
+        if (metric.labels !== undefined) {
+          for (let k = 0; k < labels.length; k++) {
+            const label = labels[k];
+            if (metric.labels[label.name] !== label.value) {
+              allLabelsExists = false;
+            }
+          }
+        }
+        if (allLabelsExists) {
+          return parseFloat(metric.value);
+        }
+      }
+    }
+  }
+  return undefined;
+}
+
+const addMetricsToData = ({ data, runningNodeExportes }, okCallback, errorCallback) => {
+  if (runningNodeExportes.length > 0) { // should fetch metrics
+    fetchMetrics(runningNodeExportes.map(({ address }) => address))
+      .then(metricsList => {
+        for (let i = 0; i < data.nodes.length; i++) {
+          let node = data.nodes[i];
+          for (let j = 0; j < runningNodeExportes.length; j++) {
+            const nodeExporterTask = runningNodeExportes[j];
+            if (node["ID"] === nodeExporterTask.nodeID) {
+              const metricsOfThisNode = metricsList[j];
+              let free = findMetricValue(metricsOfThisNode, "node_filesystem_avail_bytes", [{ name: "mountpoint", value: "/" }]);
+              let total = findMetricValue(metricsOfThisNode, "node_filesystem_size_bytes", [{ name: "mountpoint", value: "/" }]);
+              if ((free !== undefined) && (total !== undefined)) {
+                node.diskFullness = (total - free) / total;
+              }
+            }
+          }
+        }
+        okCallback({ data, runningNodeExportes })
+      })
+      .catch(e => {
+        console.error('Could not fetch metrics', e)
+        errorCallback()
+      });
+  } else {
+    okCallback({ data, runningNodeExportes })
+  }
+}
 
 // WebSocket pub-sub
 
@@ -272,36 +322,35 @@ if (enableAuthentication) {
   });
 }
 
-app.get('/debug-docker-data', (req, res) => {
-  fetchDockerData().then(it => res.send(it)).catch(e => res.send(e.toString()));
-});
+// app.get('/debug-docker-data', (req, res) => {
+//   fetchDockerData().then(it => res.send(it)).catch(e => res.send(e.toString()));
+// });
 
-app.get('/debug-metrics', (req, res) => {
-  fetchMetrics(lastRunningNodeExportes.map(({ Address }) => Address)).then(it => res.send(it)).catch(e => res.send(e.toString()));
-});
+// app.get('/debug-metrics', (req, res) => {
+//   fetchMetrics(lastRunningNodeExportes.map(({ address }) => address)).then(it => res.send(it)).catch(e => res.send(e.toString()));
+// });
 
 // start the polling
 
 let listeners = [];
-let lastRunningNodeExportes = {};
 let lastData = {};
 let lastSha = '';
 
 setInterval(() => {
   fetchDockerData()
     .then(it => {
-      listeners = dropClosed(listeners);
+      addMetricsToData(parseAndRedactDockerData(it), ({ data }) => {
+        data = stabilize(data);
+        const sha = sha1OfData(data);
 
-      let { data, runningNodeExportes } = parseAndRedactDockerData(it);
-      data = stabilize(data);
-      const sha = sha1OfData(data);
+        if (sha == lastSha) return;
 
-      if (sha == lastSha) return;
+        lastSha = sha;
+        lastData = data;
 
-      lastSha = sha;
-      lastData = data;
-      lastRunningNodeExportes = runningNodeExportes;
-      publish(listeners, data);
+        listeners = dropClosed(listeners);
+        publish(listeners, data);
+      })
     })
     .catch(e => console.error('Could not publish', e)); // eslint-disable-line no-console
 }, 500);

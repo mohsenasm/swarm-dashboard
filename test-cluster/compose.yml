@@ -11,6 +11,7 @@ services:
       PORT: 8080
       ENABLE_AUTHENTICATION: "false"
       ENABLE_HTTPS: "false"
+      NODE_EXPORTER_FULL_SERVICE_NAME: "sd_node-exporter"
     deploy:
       placement:
         constraints:
