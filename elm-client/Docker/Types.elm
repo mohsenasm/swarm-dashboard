@@ -38,6 +38,7 @@ type alias Node =
     , role : String
     , status : NodeStatus
     , managerStatus : Maybe ManagerStatus
+    , diskFullness : Maybe Int
     }
 
 

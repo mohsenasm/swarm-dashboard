@@ -27,12 +27,13 @@ managerStatus =
 
 node : Json.Decoder Node
 node =
-    Json.map5 Node
+    Json.map6 Node
         (Json.at [ "ID" ] Json.string)
         (Json.at [ "Description", "Hostname" ] Json.string)
         (Json.at [ "Spec", "Role" ] Json.string)
         (Json.at [ "Status" ] nodeStatus)
         (Json.maybe (Json.at [ "ManagerStatus" ] managerStatus))
+        (Json.maybe (Json.at [ "diskFullness" ] Json.int))
 
 
 network : Json.Decoder Network

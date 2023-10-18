@@ -77,6 +77,14 @@ node node =
 
         nodeRole =
             String.join " " [ node.role, iff leader "(leader)" "" ]
+
+        infoLabel =
+            case node.diskFullness of
+                Just s ->
+                    toString s ++ " %"
+
+                Nothing ->
+                    ""
     in
         th [ classList classes ]
             [ strong [] [ text node.name ]
@@ -84,6 +92,8 @@ node node =
             , text nodeRole
             , br [] []
             , text node.status.address
+            , br [] []
+            , text (infoLabel)
             ]
 
 
