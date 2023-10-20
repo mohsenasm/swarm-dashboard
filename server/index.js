@@ -406,6 +406,13 @@ if (enableAuthentication) {
 //   fetchMetrics(lastRunningNodeExportes.map(({ address }) => `http://${address}:9100/metrics`)).then(it => res.send(it)).catch(e => res.send(e.toString()));
 // });
 
+app.get('/debug-log', (req, res) => {
+  console.log("lastRunningNodeExportes", lastRunningNodeExportes);
+  console.log("lastNodeMetrics", lastNodeMetrics);
+  console.log("lastData", lastData);
+  console.log("---------------")
+});
+
 // start the polling
 
 let lastRunningNodeExportes = [];
