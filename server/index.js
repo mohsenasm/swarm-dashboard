@@ -20,6 +20,7 @@ const enableHTTPS = process.env.ENABLE_HTTPS === "true";
 const legoPath = process.env.LEGO_PATH;
 const httpsHostname = process.env.HTTPS_HOSTNAME;
 const _nodeExporterServiceNameRegex = process.env.NODE_EXPORTER_SERVICE_NAME_REGEX || "";
+const nodeExporterInterestedMountPoint = process.env.NODE_EXPORTER_INTERESTED_MOUNT_POINT || "/";
 const useNodeExporter = _nodeExporterServiceNameRegex !== "";
 const nodeExporterServiceNameRegex = new RegExp(_nodeExporterServiceNameRegex);
 
@@ -270,8 +271,8 @@ const fetchNodeMetrics = ({ lastData, lastRunningNodeExportes, lastNodeMetrics }
               }
 
               // disk
-              let freeDisk = findMetricValue(metricsOfThisNode, "node_filesystem_avail_bytes", [{ name: "mountpoint", value: "/" }]);
-              let totalDisk = findMetricValue(metricsOfThisNode, "node_filesystem_size_bytes", [{ name: "mountpoint", value: "/" }]);
+              let freeDisk = findMetricValue(metricsOfThisNode, "node_filesystem_avail_bytes", [{ name: "mountpoint", value: nodeExporterInterestedMountPoint }]);
+              let totalDisk = findMetricValue(metricsOfThisNode, "node_filesystem_size_bytes", [{ name: "mountpoint", value: nodeExporterInterestedMountPoint }]);
               if ((freeDisk !== undefined) && (totalDisk !== undefined)) {
                 metricToSave.diskFullness = Math.round((totalDisk - freeDisk) * 100 / totalDisk);
               }
