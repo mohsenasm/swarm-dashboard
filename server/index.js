@@ -243,22 +243,47 @@ const findMetricValue = (metrics, name, labels) => {
   return undefined;
 }
 
-const fetchNodeMetrics = ({data, runningNodeExportes}, callback) => {
+const currentTime = () => Math.floor(Date.now() / 1000);
+
+const fetchNodeMetrics = ({ lastData, lastRunningNodeExportes, lastNodeMetrics }, callback) => {
   let nodeMetrics = [];
-  if (runningNodeExportes.length > 0) { // should fetch metrics
-    fetchMetrics(runningNodeExportes.map(({ address }) => `http://${address}:9100/metrics`))
+  if (lastRunningNodeExportes.length > 0) { // should fetch metrics
+    fetchMetrics(lastRunningNodeExportes.map(({ address }) => `http://${address}:9100/metrics`))
       .then(metricsList => {
-        for (let i = 0; i < data.nodes.length; i++) {
-          let node = data.nodes[i];
-          for (let j = 0; j < runningNodeExportes.length; j++) {
-            const nodeExporterTask = runningNodeExportes[j];
+        for (let i = 0; i < lastData.nodes.length; i++) {
+          let node = lastData.nodes[i];
+          for (let j = 0; j < lastRunningNodeExportes.length; j++) {
+            const nodeExporterTask = lastRunningNodeExportes[j];
             if (node["ID"] === nodeExporterTask.nodeID) {
               const metricsOfThisNode = metricsList[j];
+              const metricToSave = { nodeID: node["ID"], fetchTime: currentTime() };
+
+              // last metrics
+              let lastMetricsOfThisNode = {};
+              let timeDiffFromLastMetrics = 0;
+              for (let k = 0; k < lastNodeMetrics.length; k++) {
+                if (lastNodeMetrics[k].nodeID === node["ID"]) {
+                  lastMetricsOfThisNode = lastNodeMetrics[k];
+                  timeDiffFromLastMetrics = metricToSave.fetchTime - lastMetricsOfThisNode.fetchTime
+                  break;
+                }
+              }
+
+              // disk
               let free = findMetricValue(metricsOfThisNode, "node_filesystem_avail_bytes", [{ name: "mountpoint", value: "/" }]);
               let total = findMetricValue(metricsOfThisNode, "node_filesystem_size_bytes", [{ name: "mountpoint", value: "/" }]);
               if ((free !== undefined) && (total !== undefined)) {
-                nodeMetrics.push({ nodeID: node["ID"], info: `disk: ${Math.ceil((total - free) * 100 / total)}%` });
+                metricToSave.diskFullness = Math.round((total - free) * 100 / total);
               }
+
+              // cpu
+              let cpuSecondsTotal = findMetricValue(metricsOfThisNode, "process_cpu_seconds_total", []);
+              metricToSave.cpuSecondsTotal = cpuSecondsTotal;
+              if ((lastMetricsOfThisNode.cpuSecondsTotal) && (timeDiffFromLastMetrics > 0)) {
+                metricToSave.cpuPercent =  Math.round((metricToSave.cpuSecondsTotal - lastMetricsOfThisNode.cpuSecondsTotal) * 100 / timeDiffFromLastMetrics) ;
+              }
+
+              nodeMetrics.push(metricToSave);
             }
           }
         }
@@ -279,7 +304,18 @@ const addNodeMetricsToData = (data, lastNodeMetrics) => {
     for (let j = 0; j < lastNodeMetrics.length; j++) {
       const nodeMetric = lastNodeMetrics[j];
       if (nodeMetric.nodeID === node["ID"]) {
-        node.info = nodeMetric.info;
+        let info = "";
+        if (nodeMetric.diskFullness !== undefined) {
+          info += `disk: ${nodeMetric.diskFullness}%`;
+        }
+        if (nodeMetric.cpuPercent !== undefined) {
+          if (info)
+            info += " | "
+          info += `cpu: ${nodeMetric.cpuPercent}%`;
+        }
+        if (info) {
+          node.info = info;
+        }
       }
     }
   }
@@ -341,9 +377,9 @@ if (enableAuthentication) {
 //   fetchDockerData().then(it => res.send(it)).catch(e => res.send(e.toString()));
 // });
 
-// app.get('/debug-metrics', (req, res) => {
-//   fetchMetrics(lastRunningNodeExportes.map(({ address }) => address)).then(it => res.send(it)).catch(e => res.send(e.toString()));
-// });
+app.get('/debug-metrics', (req, res) => {
+  fetchMetrics(lastRunningNodeExportes.map(({ address }) => `http://${address}:9100/metrics`)).then(it => res.send(it)).catch(e => res.send(e.toString()));
+});
 
 // start the polling
 
@@ -376,7 +412,7 @@ setInterval(() => { // update docker data
 }, 500); // refreshs each 0.5s
 
 setInterval(() => { // update node data
-  fetchNodeMetrics({data: lastData, runningNodeExportes: lastRunningNodeExportes}, (nodeMetrics) => {
+  fetchNodeMetrics({ lastData, lastRunningNodeExportes, lastNodeMetrics }, (nodeMetrics) => {
     lastNodeMetrics = nodeMetrics;
   })
 }, 2000); // refreshs each 2s
