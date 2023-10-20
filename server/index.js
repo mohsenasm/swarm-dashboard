@@ -402,9 +402,9 @@ if (enableAuthentication) {
 //   fetchDockerData().then(it => res.send(it)).catch(e => res.send(e.toString()));
 // });
 
-app.get('/debug-metrics', (req, res) => {
-  fetchMetrics(lastRunningNodeExportes.map(({ address }) => `http://${address}:9100/metrics`)).then(it => res.send(it)).catch(e => res.send(e.toString()));
-});
+// app.get('/debug-metrics', (req, res) => {
+//   fetchMetrics(lastRunningNodeExportes.map(({ address }) => `http://${address}:9100/metrics`)).then(it => res.send(it)).catch(e => res.send(e.toString()));
+// });
 
 // start the polling
 
