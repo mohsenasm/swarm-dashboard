@@ -78,23 +78,28 @@ node node =
         nodeRole =
             String.join " " [ node.role, iff leader "(leader)" "" ]
 
-        infoLabel =
-            case node.diskFullness of
+        info =
+            case node.info of
                 Just s ->
-                    toString s ++ " %"
+                    [
+                        br [] []
+                        , text (s)
+                    ]
 
                 Nothing ->
-                    ""
+                    []
     in
         th [ classList classes ]
-            [ strong [] [ text node.name ]
-            , br [] []
-            , text nodeRole
-            , br [] []
-            , text node.status.address
-            , br [] []
-            , text (infoLabel)
-            ]
+            (List.concat [
+                [ 
+                    strong [] [ text node.name ]
+                    , br [] []
+                    , text nodeRole
+                    , br [] []
+                    , text node.status.address
+                ]
+                , info
+            ])
 
 
 swarmHeader : List Node -> List Network -> Html msg

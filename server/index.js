@@ -19,7 +19,9 @@ const password = process.env.PASSWORD || "supersecret";
 const enableHTTPS = process.env.ENABLE_HTTPS === "true";
 const legoPath = process.env.LEGO_PATH;
 const httpsHostname = process.env.HTTPS_HOSTNAME;
-const nodeExporterFullServiceName = process.env.NODE_EXPORTER_FULL_SERVICE_NAME || "";
+const _nodeExporterServiceNameRegex = process.env.NODE_EXPORTER_SERVICE_NAME_REGEX || "";
+const useNodeExporter = _nodeExporterServiceNameRegex !== "";
+const nodeExporterServiceNameRegex = new RegExp(_nodeExporterServiceNameRegex);
 
 
 const sha1OfData = data =>
@@ -164,8 +166,8 @@ const parseAndRedactDockerData = data => {
     }
     services.push(service);
 
-    if (nodeExporterFullServiceName !== "") {
-      if (nodeExporterFullServiceName === baseService["Spec"]["Name"]) {
+    if (useNodeExporter) {
+      if (nodeExporterServiceNameRegex.test(baseService["Spec"]["Name"])) {
         nodeExporterServiceID = baseService["ID"];
       }
     }
@@ -254,7 +256,7 @@ const addMetricsToData = ({ data, runningNodeExportes }, okCallback, errorCallba
               let free = findMetricValue(metricsOfThisNode, "node_filesystem_avail_bytes", [{ name: "mountpoint", value: "/" }]);
               let total = findMetricValue(metricsOfThisNode, "node_filesystem_size_bytes", [{ name: "mountpoint", value: "/" }]);
               if ((free !== undefined) && (total !== undefined)) {
-                node.diskFullness = Math.ceil((total - free) * 100 / total);
+                node.info = `disk: ${Math.ceil((total - free) * 100 / total)}%`;
               }
             }
           }
@@ -263,7 +265,8 @@ const addMetricsToData = ({ data, runningNodeExportes }, okCallback, errorCallba
       })
       .catch(e => {
         console.error('Could not fetch metrics', e)
-        errorCallback()
+        if (errorCallback)
+          errorCallback()
       });
   } else {
     okCallback({ data, runningNodeExportes })
@@ -333,13 +336,14 @@ if (enableAuthentication) {
 // start the polling
 
 let listeners = [];
+let lastRunningNodeExportes = {};
 let lastData = {};
 let lastSha = '';
 
 setInterval(() => {
   fetchDockerData()
     .then(it => {
-      addMetricsToData(parseAndRedactDockerData(it), ({ data }) => {
+      addMetricsToData(parseAndRedactDockerData(it), ({ data, runningNodeExportes }) => {
         data = stabilize(data);
         const sha = sha1OfData(data);
 
@@ -347,6 +351,7 @@ setInterval(() => {
 
         lastSha = sha;
         lastData = data;
+        lastRunningNodeExportes = runningNodeExportes;
 
         listeners = dropClosed(listeners);
         publish(listeners, data);

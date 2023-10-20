@@ -33,7 +33,7 @@ node =
         (Json.at [ "Spec", "Role" ] Json.string)
         (Json.at [ "Status" ] nodeStatus)
         (Json.maybe (Json.at [ "ManagerStatus" ] managerStatus))
-        (Json.maybe (Json.at [ "diskFullness" ] Json.int))
+        (Json.maybe (Json.at [ "info" ] Json.string))
 
 
 network : Json.Decoder Network

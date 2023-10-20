@@ -1,0 +1,22 @@
+version: "3.2"
+
+services:
+  swarm-dashboard:
+    build: ..
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 8080:8080
+    environment:
+      PORT: 8080
+      ENABLE_AUTHENTICATION: "false"
+      ENABLE_HTTPS: "false"
+      NODE_EXPORTER_SERVICE_NAME_REGEX: "node-exporter"
+    networks:
+      - monitoring_net
+
+
+networks:
+  monitoring_net:
+    external:
+      name: sd_monitoring_net
