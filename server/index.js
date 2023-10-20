@@ -265,8 +265,9 @@ const addMetricsToData = ({ data, runningNodeExportes }, okCallback, errorCallba
       })
       .catch(e => {
         console.error('Could not fetch metrics', e)
-        if (errorCallback)
-          errorCallback()
+        okCallback({ data, runningNodeExportes })
+        // if (errorCallback)
+        //   errorCallback()
       });
   } else {
     okCallback({ data, runningNodeExportes })

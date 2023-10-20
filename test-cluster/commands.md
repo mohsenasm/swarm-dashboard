@@ -3,12 +3,12 @@
 
 # Run swarm-dashboard
     vagrant ssh manager1 # password: docker
-    docker stack deploy -c /vagrant/compose.yml sd
+    docker stack deploy -c /vagrant/compose-all.yml sd
 
 <!-- # Run swarm-dashboard (build locally)
     vagrant ssh manager1 # password: docker
-    docker stack deploy -c /vagrant_parent/test-cluster/test-swarm-compose.yml sd
-    docker-compose -f /vagrant_parent/test-cluster/test-local-compose.yml up --build -->
+    docker stack deploy -c /vagrant_parent/test-cluster/compose-metrics.yml sd
+    docker-compose -f /vagrant_parent/test-cluster/compose-dashboard.yml up --build -->
 
 # Shutdown
     vagrant halt
