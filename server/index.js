@@ -79,10 +79,10 @@ const metricRequest = (url) => {
   });
 };
 
-const fetchMetrics = (nodeExporterIPs) => {
+const fetchMetrics = (addresses) => {
   let promises = [];
-  for (let i = 0; i < nodeExporterIPs.length; i++) {
-    promises.push(metricRequest(`http://${nodeExporterIPs[i]}:9100/metrics`).then(parsePrometheusTextFormat));
+  for (let i = 0; i < addresses.length; i++) {
+    promises.push(metricRequest(addresses[i]).then(parsePrometheusTextFormat));
   }
   return Promise.all(promises);
 }
@@ -243,9 +243,10 @@ const findMetricValue = (metrics, name, labels) => {
   return undefined;
 }
 
-const addMetricsToData = ({ data, runningNodeExportes }, okCallback, errorCallback) => {
+const fetchNodeMetrics = ({data, runningNodeExportes}, callback) => {
+  let nodeMetrics = [];
   if (runningNodeExportes.length > 0) { // should fetch metrics
-    fetchMetrics(runningNodeExportes.map(({ address }) => address))
+    fetchMetrics(runningNodeExportes.map(({ address }) => `http://${address}:9100/metrics`))
       .then(metricsList => {
         for (let i = 0; i < data.nodes.length; i++) {
           let node = data.nodes[i];
@@ -256,21 +257,31 @@ const addMetricsToData = ({ data, runningNodeExportes }, okCallback, errorCallba
               let free = findMetricValue(metricsOfThisNode, "node_filesystem_avail_bytes", [{ name: "mountpoint", value: "/" }]);
               let total = findMetricValue(metricsOfThisNode, "node_filesystem_size_bytes", [{ name: "mountpoint", value: "/" }]);
               if ((free !== undefined) && (total !== undefined)) {
-                node.info = `disk: ${Math.ceil((total - free) * 100 / total)}%`;
+                nodeMetrics.push({ nodeID: node["ID"], info: `disk: ${Math.ceil((total - free) * 100 / total)}%` });
               }
             }
           }
         }
-        okCallback({ data, runningNodeExportes })
+        callback(nodeMetrics);
       })
       .catch(e => {
         console.error('Could not fetch metrics', e)
-        okCallback({ data, runningNodeExportes })
-        // if (errorCallback)
-        //   errorCallback()
+        callback(nodeMetrics);
       });
   } else {
-    okCallback({ data, runningNodeExportes })
+    callback(nodeMetrics);
+  }
+}
+
+const addNodeMetricsToData = (data, lastNodeMetrics) => {
+  for (let i = 0; i < data.nodes.length; i++) {
+    const node = data.nodes[i];
+    for (let j = 0; j < lastNodeMetrics.length; j++) {
+      const nodeMetric = lastNodeMetrics[j];
+      if (nodeMetric.nodeID === node["ID"]) {
+        node.info = nodeMetric.info;
+      }
+    }
   }
 }
 
@@ -336,30 +347,39 @@ if (enableAuthentication) {
 
 // start the polling
 
+let lastRunningNodeExportes = [];
+let lastNodeMetrics = [];
+
 let listeners = [];
-let lastRunningNodeExportes = {};
 let lastData = {};
 let lastSha = '';
 
-setInterval(() => {
+setInterval(() => { // update docker data
   fetchDockerData()
     .then(it => {
-      addMetricsToData(parseAndRedactDockerData(it), ({ data, runningNodeExportes }) => {
-        data = stabilize(data);
-        const sha = sha1OfData(data);
+      let { data, runningNodeExportes } = parseAndRedactDockerData(it);
+      addNodeMetricsToData(data, lastNodeMetrics); // it makes fetching of main data and node metrics independent.
 
-        if (sha == lastSha) return;
+      data = stabilize(data);
+      const sha = sha1OfData(data);
 
-        lastSha = sha;
-        lastData = data;
-        lastRunningNodeExportes = runningNodeExportes;
+      if (sha == lastSha) return;
 
-        listeners = dropClosed(listeners);
-        publish(listeners, data);
-      })
+      lastSha = sha;
+      lastData = data;
+      lastRunningNodeExportes = runningNodeExportes;
+
+      listeners = dropClosed(listeners);
+      publish(listeners, data);
     })
     .catch(e => console.error('Could not publish', e)); // eslint-disable-line no-console
-}, 500);
+}, 500); // refreshs each 0.5s
+
+setInterval(() => { // update node data
+  fetchNodeMetrics({data: lastData, runningNodeExportes: lastRunningNodeExportes}, (nodeMetrics) => {
+    lastNodeMetrics = nodeMetrics;
+  })
+}, 2000); // refreshs each 2s
 
 function onWSConnection(ws, req) {
   let params = undefined;
