@@ -270,17 +270,37 @@ const fetchNodeMetrics = ({ lastData, lastRunningNodeExportes, lastNodeMetrics }
               }
 
               // disk
-              let free = findMetricValue(metricsOfThisNode, "node_filesystem_avail_bytes", [{ name: "mountpoint", value: "/" }]);
-              let total = findMetricValue(metricsOfThisNode, "node_filesystem_size_bytes", [{ name: "mountpoint", value: "/" }]);
-              if ((free !== undefined) && (total !== undefined)) {
-                metricToSave.diskFullness = Math.round((total - free) * 100 / total);
+              let freeDisk = findMetricValue(metricsOfThisNode, "node_filesystem_avail_bytes", [{ name: "mountpoint", value: "/" }]);
+              let totalDisk = findMetricValue(metricsOfThisNode, "node_filesystem_size_bytes", [{ name: "mountpoint", value: "/" }]);
+              if ((freeDisk !== undefined) && (totalDisk !== undefined)) {
+                metricToSave.diskFullness = Math.round((totalDisk - freeDisk) * 100 / totalDisk);
               }
 
               // cpu
-              let cpuSecondsTotal = findMetricValue(metricsOfThisNode, "process_cpu_seconds_total", []);
-              metricToSave.cpuSecondsTotal = cpuSecondsTotal;
-              if ((lastMetricsOfThisNode.cpuSecondsTotal) && (timeDiffFromLastMetrics > 0)) {
-                metricToSave.cpuPercent =  Math.round((metricToSave.cpuSecondsTotal - lastMetricsOfThisNode.cpuSecondsTotal) * 100 / timeDiffFromLastMetrics) ;
+              metricToSave.cpuSecondsTotal = findMetricValue(metricsOfThisNode, "process_cpu_seconds_total", []);
+              if (
+                (metricToSave.cpuSecondsTotal !== undefined) &&
+                (lastMetricsOfThisNode.cpuSecondsTotal !== undefined) &&
+                (timeDiffFromLastMetrics > 0)
+              ) {
+                metricToSave.cpuPercent = Math.round((metricToSave.cpuSecondsTotal - lastMetricsOfThisNode.cpuSecondsTotal) * 100 / timeDiffFromLastMetrics);
+              }
+
+              // memory
+              let node_memory_MemFree_bytes = findMetricValue(metricsOfThisNode, "node_memory_MemFree_bytes", []);
+              let node_memory_Cached_bytes = findMetricValue(metricsOfThisNode, "node_memory_Cached_bytes", []);
+              let node_memory_Buffers_bytes = findMetricValue(metricsOfThisNode, "node_memory_Buffers_bytes", []);
+              let node_memory_MemTotal_bytes = findMetricValue(metricsOfThisNode, "node_memory_MemTotal_bytes", []);
+              if (
+                (node_memory_MemFree_bytes !== undefined) &&
+                (node_memory_Cached_bytes !== undefined) &&
+                (node_memory_Buffers_bytes !== undefined) &&
+                (node_memory_MemTotal_bytes !== undefined) &&
+                (node_memory_MemTotal_bytes > 0)
+              ) {
+                metricToSave.memoryPercent = Math.round(
+                  100 * (1 - ((node_memory_MemFree_bytes + node_memory_Cached_bytes + node_memory_Buffers_bytes) / node_memory_MemTotal_bytes))
+                );
               }
 
               nodeMetrics.push(metricToSave);
@@ -312,6 +332,11 @@ const addNodeMetricsToData = (data, lastNodeMetrics) => {
           if (info)
             info += " | "
           info += `cpu: ${nodeMetric.cpuPercent}%`;
+        }
+        if (nodeMetric.memoryPercent !== undefined) {
+          if (info)
+            info += " | "
+          info += `mem: ${nodeMetric.memoryPercent}%`;
         }
         if (info) {
           node.info = info;
