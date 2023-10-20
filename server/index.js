@@ -99,7 +99,7 @@ const parseAndRedactDockerData = data => {
   let services = [];
   let tasks = [];
 
-  let nodeExporterServiceID = undefined;
+  let nodeExporterServiceIDs = [];
   let runningNodeExportes = [];
 
   for (let i = 0; i < data.nodes.length; i++) {
@@ -168,7 +168,7 @@ const parseAndRedactDockerData = data => {
 
     if (useNodeExporter) {
       if (nodeExporterServiceNameRegex.test(baseService["Spec"]["Name"])) {
-        nodeExporterServiceID = baseService["ID"];
+        nodeExporterServiceIDs.push(baseService["ID"]);
       }
     }
   }
@@ -195,8 +195,8 @@ const parseAndRedactDockerData = data => {
       task["Slot"] = baseTask["Slot"]
     tasks.push(task);
 
-    if (nodeExporterServiceID !== undefined) {
-      if ((nodeExporterServiceID === baseTask["ServiceID"]) &&
+    if (nodeExporterServiceIDs.length > 0) {
+      if ((nodeExporterServiceIDs.includes(baseTask["ServiceID"])) &&
         (baseTask["Status"]["State"] === "running") &&
         (baseTask["NodeID"] !== undefined) &&
         (baseTask["NetworksAttachments"] !== undefined)) {
@@ -409,8 +409,8 @@ if (enableAuthentication) {
 app.get('/debug-log', (req, res) => {
   console.log("lastRunningNodeExportes", lastRunningNodeExportes);
   console.log("lastNodeMetrics", lastNodeMetrics);
-  console.log("lastData", lastData);
-  console.log("---------------")
+  console.log("---------------");
+  res.send("logged.")
 });
 
 // start the polling
