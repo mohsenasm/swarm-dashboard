@@ -3,13 +3,13 @@
 
 Vagrant.configure("2") do |config|
   config.vm.define "manager1" do |node|
-    node.vm.box = "anzz1/boot2docker"
-    node.vm.box_version = "18.01.0"
+    node.vm.box = "gusztavvargadr/docker-community-ubuntu-server"
     node.vm.network :private_network, ip: "10.0.0.10"
     node.vm.hostname = "manager1"
 
     node.vm.network "forwarded_port", guest: 8080, host: 8080
 
+    node.vm.synced_folder "..", "/vagrant_parent"
     node.vm.synced_folder "./data", "/vagrant_data"
     node.vm.provision "shell", path: "wait-for-docker.sh"
     node.vm.provision "shell", inline: <<-SHELL
@@ -20,8 +20,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.define "manager2" do |node|
-    node.vm.box = "anzz1/boot2docker"
-    node.vm.box_version = "18.01.0"
+    node.vm.box = "gusztavvargadr/docker-community-ubuntu-server"
     node.vm.network :private_network, ip: "10.0.0.11"
     node.vm.hostname = "manager2"
 
@@ -33,8 +32,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.define "worker1" do |node|
-    node.vm.box = "anzz1/boot2docker"
-    node.vm.box_version = "18.01.0"
+    node.vm.box = "gusztavvargadr/docker-community-ubuntu-server"
     node.vm.network :private_network, ip: "10.0.0.21"
     node.vm.hostname = "worker1"
 
@@ -46,8 +44,7 @@ Vagrant.configure("2") do |config|
   end
   
   config.vm.define "worker2" do |node|
-    node.vm.box = "anzz1/boot2docker"
-    node.vm.box_version = "18.01.0"
+    node.vm.box = "gusztavvargadr/docker-community-ubuntu-server"
     node.vm.network :private_network, ip: "10.0.0.22"
     node.vm.hostname = "worker2"
 
@@ -57,9 +54,4 @@ Vagrant.configure("2") do |config|
       docker swarm join --token $(cat /vagrant_data/swarm-worker-token) 10.0.0.10:2377
     SHELL
   end
-
-  # config.vm.provision "shell", run: 'always', inline: <<-SHELL
-  config.vm.provision "shell", inline: <<-SHELL
-    echo 'docker:docker' | sudo chpasswd
-  SHELL
 end
