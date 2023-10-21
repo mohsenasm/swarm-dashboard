@@ -62,8 +62,8 @@ columnStart i =
 -- SVG shorthand
 
 
-svgLine : ( Float, Float ) -> ( Float, Float ) -> Float -> String -> Svg msg
-svgLine ( ox, oy ) ( dx, dy ) width colour =
+svgLine : ( Float, Float ) -> ( Float, Float ) -> Float -> String -> String -> Svg msg
+svgLine ( ox, oy ) ( dx, dy ) width colour name =
     line
         [ x1 (toString ox)
         , y1 (toString oy)
@@ -72,48 +72,52 @@ svgLine ( ox, oy ) ( dx, dy ) width colour =
         , strokeWidth (toString width)
         , stroke colour
         ]
-        []
+        [
+          Svg.title [] [ text name ]
+        ]
 
 
-svgCircle : ( Float, Float ) -> Float -> String -> Svg msg
-svgCircle ( cenx, ceny ) rad colour =
+svgCircle : ( Float, Float ) -> Float -> String -> String -> Svg msg
+svgCircle ( cenx, ceny ) rad colour name =
     circle
         [ cx (toString cenx)
         , cy (toString ceny)
         , r (toString rad)
         , fill colour
         ]
-        []
+        [
+          Svg.title [] [ text name ]
+        ]
 
 
 
 -- Symbol pieces
 
 
-topLine : Int -> Color -> Svg msg
-topLine i color =
-    svgLine ( columnCenter i, 0 ) ( columnCenter i, 31 ) 2 color
+topLine : Int -> Color -> String -> Svg msg
+topLine i color name =
+    svgLine ( columnCenter i, 0 ) ( columnCenter i, 31 ) 2 color name
 
 
-bottomLine : Int -> Color -> Svg msg
-bottomLine i color =
-    svgLine ( columnCenter i, 31 ) ( columnCenter i, 62 ) 2 color
+bottomLine : Int -> Color -> String -> Svg msg
+bottomLine i color name =
+    svgLine ( columnCenter i, 31 ) ( columnCenter i, 62 ) 2 color name
 
 
-dot : Int -> Color -> Svg msg
-dot i color =
-    svgCircle ( columnCenter i, 31 ) (widthStep / 3) color
+dot : Int -> Color -> String -> Svg msg
+dot i color name =
+    svgCircle ( columnCenter i, 31 ) (widthStep / 3) color name
 
 
-fullLine : Int -> Color -> Svg msg
-fullLine i color =
-    svgLine ( columnCenter i, 0 ) ( columnCenter i, 1 ) 2 color
+fullLine : Int -> Color -> String -> Svg msg
+fullLine i color name =
+    svgLine ( columnCenter i, 0 ) ( columnCenter i, 1 ) 2 color name
 
 
-tcap : Int -> Color -> List (Svg msg)
-tcap i color =
-    [ (svgLine ( (columnStart i) + widthStep / 6, 0 ) ( (columnStart i) + widthStep * 5 / 6, 0 ) 4 color)
-    , svgLine ( columnCenter i, 0 ) ( columnCenter i, widthStep ) 2 color
+tcap : Int -> Color -> String -> List (Svg msg)
+tcap i color name =
+    [ (svgLine ( (columnStart i) + widthStep / 6, 0 ) ( (columnStart i) + widthStep * 5 / 6, 0 ) 4 color name)
+    , svgLine ( columnCenter i, 0 ) ( columnCenter i, widthStep ) 2 color name
     ]
 
 
@@ -126,7 +130,7 @@ head networks =
     let
         cap i network =
             if network.ingress then
-                tcap i "white"
+                tcap i "white" network.name
             else
                 []
     in
@@ -138,30 +142,33 @@ head networks =
             (networks |> List.indexedMap cap >> List.concat)
 
 
-attachments : List Connection -> Array Color -> Svg msg
-attachments connections colors =
+attachments : List Connection -> Array Color -> Array String -> Svg msg
+attachments connections colors names =
     let
         symbol : Int -> Connection -> List (Svg msg)
         symbol i connection =
             let
                 color =
                     Maybe.withDefault "white" (Array.get i colors)
+                
+                name =
+                    Maybe.withDefault "" (Array.get i names)
             in
                 case connection of
                     Through ->
-                        [ topLine i color, bottomLine i color ]
+                        [ topLine i color name, bottomLine i color name ]
 
                     Start ->
-                        [ dot i color, bottomLine i color ]
+                        [ dot i color name, bottomLine i color name ]
 
                     Middle ->
-                        [ topLine i color, dot i color, bottomLine i color ]
+                        [ topLine i color name, dot i color name, bottomLine i color name ]
 
                     End ->
-                        [ topLine i color, dot i color ]
+                        [ topLine i color name, dot i color name ]
 
                     Only ->
-                        [ dot i color ]
+                        [ dot i color name ]
 
                     None ->
                         []
@@ -171,16 +178,19 @@ attachments connections colors =
             (connections |> List.indexedMap symbol >> List.concat)
 
 
-tails : List Connection -> Array Color -> Svg msg
-tails connections colors =
+tails : List Connection -> Array Color -> Array String -> Svg msg
+tails connections colors names =
     let
         symbol i connection =
             let
                 color =
                     Maybe.withDefault "white" (Array.get i colors)
+                
+                name =
+                    Maybe.withDefault "" (Array.get i names)
             in
                 if List.member connection [ Start, Middle, Through ] then
-                    [ fullLine i color ]
+                    [ fullLine i color name ]
                 else
                     []
     in
@@ -215,8 +225,11 @@ connections service networkConnections =
 
         colors =
             networkConnections.networks |> Array.fromList << List.indexedMap (\i n -> iff n.ingress "white" (networkColor i))
+        
+        names =
+            networkConnections.networks |> Array.fromList << List.indexedMap (\i n -> n.name)
     in
         H.td [ class "networks" ]
-            [ attachments connections colors
-            , H.div [] [ tails connections colors ]
+            [ attachments connections colors names
+            , H.div [] [ tails connections colors names ]
             ]

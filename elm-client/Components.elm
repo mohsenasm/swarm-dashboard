@@ -17,7 +17,7 @@ statusString state desiredState =
 
 
 task : Service -> AssignedTask -> Html msg
-task service { status, desiredState, containerSpec, slot } =
+task service { status, desiredState, containerSpec, slot, info } =
     let
         classes =
             [ ( status.state, True )
@@ -32,12 +32,39 @@ task service { status, desiredState, containerSpec, slot } =
 
                 Nothing ->
                     ""
+        
+        cpuInfo =
+            case info.cpu of
+                Just s ->
+                    [
+                        div [ class "tag left" ] [ text s ]
+                    ]
+
+                Nothing ->
+                    []
+
+        memoryInfo =
+            case info.memory of
+                Just s ->
+                    [
+                        div [ class "tag right" ] [ text s ]
+                    ]
+
+                Nothing ->
+                    []
     in
         li [ classList classes ]
-            [ text (service.name ++ slotLabel slot)
-            , br [] []
-            , text (statusString status.state desiredState)
-            ]
+            (List.concat [
+                cpuInfo
+                , (List.concat [
+                    memoryInfo
+                    , [ text (service.name ++ slotLabel slot)
+                    , br [] []
+                    , text (statusString status.state desiredState)
+                    ]
+                ])
+            ])
+            
 
 
 serviceNode : Service -> TaskIndex -> Node -> Html msg
@@ -77,14 +104,29 @@ node node =
 
         nodeRole =
             String.join " " [ node.role, iff leader "(leader)" "" ]
+
+        info =
+            case node.info of
+                Just s ->
+                    [
+                        br [] []
+                        , text (s)
+                    ]
+
+                Nothing ->
+                    []
     in
         th [ classList classes ]
-            [ strong [] [ text node.name ]
-            , br [] []
-            , text nodeRole
-            , br [] []
-            , text node.status.address
-            ]
+            (List.concat [
+                [ 
+                    strong [] [ text node.name ]
+                    , br [] []
+                    , text nodeRole
+                    , br [] []
+                    , text node.status.address
+                ]
+                , info
+            ])
 
 
 swarmHeader : List Node -> List Network -> Html msg

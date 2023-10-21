@@ -1,0 +1,57 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.define "manager1" do |node|
+    node.vm.box = "gusztavvargadr/docker-community-ubuntu-server"
+    node.vm.network :private_network, ip: "10.0.0.10"
+    node.vm.hostname = "manager1"
+
+    node.vm.network "forwarded_port", guest: 8080, host: 8080
+
+    node.vm.synced_folder "..", "/vagrant_parent"
+    node.vm.synced_folder "./data", "/vagrant_data"
+    node.vm.provision "shell", path: "wait-for-docker.sh"
+    node.vm.provision "shell", inline: <<-SHELL
+      docker swarm init --advertise-addr 10.0.0.10
+      docker swarm join-token manager -q > /vagrant_data/swarm-manager-token
+      docker swarm join-token worker -q > /vagrant_data/swarm-worker-token
+    SHELL
+  end
+
+  config.vm.define "manager2" do |node|
+    node.vm.box = "gusztavvargadr/docker-community-ubuntu-server"
+    node.vm.network :private_network, ip: "10.0.0.11"
+    node.vm.hostname = "manager2"
+
+    node.vm.synced_folder "./data", "/vagrant_data"
+    node.vm.provision "shell", path: "wait-for-docker.sh"
+    node.vm.provision "shell", inline: <<-SHELL
+      docker swarm join --token $(cat /vagrant_data/swarm-manager-token) 10.0.0.10:2377
+    SHELL
+  end
+
+  config.vm.define "worker1" do |node|
+    node.vm.box = "gusztavvargadr/docker-community-ubuntu-server"
+    node.vm.network :private_network, ip: "10.0.0.21"
+    node.vm.hostname = "worker1"
+
+    node.vm.synced_folder "./data", "/vagrant_data"
+    node.vm.provision "shell", path: "wait-for-docker.sh"
+    node.vm.provision "shell", inline: <<-SHELL
+      docker swarm join --token $(cat /vagrant_data/swarm-worker-token) 10.0.0.10:2377
+    SHELL
+  end
+  
+  config.vm.define "worker2" do |node|
+    node.vm.box = "gusztavvargadr/docker-community-ubuntu-server"
+    node.vm.network :private_network, ip: "10.0.0.22"
+    node.vm.hostname = "worker2"
+
+    node.vm.synced_folder "./data", "/vagrant_data"
+    node.vm.provision "shell", path: "wait-for-docker.sh"
+    node.vm.provision "shell", inline: <<-SHELL
+      docker swarm join --token $(cat /vagrant_data/swarm-worker-token) 10.0.0.10:2377
+    SHELL
+  end
+end

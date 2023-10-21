@@ -38,6 +38,7 @@ type alias Node =
     , role : String
     , status : NodeStatus
     , managerStatus : Maybe ManagerStatus
+    , info : Maybe String
     }
 
 
@@ -70,6 +71,12 @@ type alias TaskStatus =
     }
 
 
+type alias TaskInfo =
+    { cpu : Maybe String
+    , memory : Maybe String
+    }
+
+
 type alias Task =
     { id : String
     , serviceId : String
@@ -78,6 +85,7 @@ type alias Task =
     , status : TaskStatus
     , desiredState : String
     , containerSpec : ContainerSpec
+    , info : TaskInfo
     }
 
 
@@ -104,12 +112,13 @@ type alias AssignedTask =
     , status : TaskStatus
     , desiredState : String
     , containerSpec : ContainerSpec
+    , info : TaskInfo
     }
 
 
 assignedTask : Task -> AssignedTask
-assignedTask { id, serviceId, nodeId, slot, status, desiredState, containerSpec } =
-    AssignedTask id serviceId (Maybe.withDefault "" nodeId) slot status desiredState containerSpec
+assignedTask { id, serviceId, nodeId, slot, status, desiredState, containerSpec, info } =
+    AssignedTask id serviceId (Maybe.withDefault "" nodeId) slot status desiredState containerSpec info
 
 
 type alias Docker =
