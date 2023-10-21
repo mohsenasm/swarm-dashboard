@@ -4,14 +4,26 @@ services:
   node-exporter:
     image: quay.io/prometheus/node-exporter:v1.6.1
     volumes:
-      - '/:/host:ro'
+      - "/:/host:ro"
     command:
-      - '--path.rootfs=/host'
+      - "--path.rootfs=/host"
     deploy:
       mode: global
     networks:
       - monitoring_net
 
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    deploy:
+      mode: global
+    networks:
+      - monitoring_net
 
 networks:
   monitoring_net:

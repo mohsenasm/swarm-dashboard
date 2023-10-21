@@ -19,14 +19,34 @@ const password = process.env.PASSWORD || "supersecret";
 const enableHTTPS = process.env.ENABLE_HTTPS === "true";
 const legoPath = process.env.LEGO_PATH;
 const httpsHostname = process.env.HTTPS_HOSTNAME;
+
 const _nodeExporterServiceNameRegex = process.env.NODE_EXPORTER_SERVICE_NAME_REGEX || "";
-const nodeExporterInterestedMountPoint = process.env.NODE_EXPORTER_INTERESTED_MOUNT_POINT || "/";
 const useNodeExporter = _nodeExporterServiceNameRegex !== "";
 const nodeExporterServiceNameRegex = new RegExp(_nodeExporterServiceNameRegex);
+const nodeExporterInterestedMountPoint = process.env.NODE_EXPORTER_INTERESTED_MOUNT_POINT || "/";
+const nodeExporterPort = process.env.NODE_EXPORTER_PORT || "9100";
+
+const _cadvisorServiceNameRegex = process.env.CADVISOR_SERVICE_NAME_REGEX || "";
+const useCadvisor = _cadvisorServiceNameRegex !== "";
+const cadvisorServiceNameRegex = new RegExp(_cadvisorServiceNameRegex);
+const cadvisorPort = process.env.CADVISOR_PORT || "8080";
 
 
 const sha1OfData = data =>
   createHash('sha1').update(JSON.stringify(data)).digest('hex');
+
+const sum = (arr) => {
+  var res = 0; for (let i = 0; i < arr.length; i++) { res += arr[i]; } return res;
+}
+
+function formatBytes(bytes, decimals = 0) {
+  if (!+bytes) return '0 Bytes'
+  const k = 1000
+  const dm = decimals < 0 ? 0 : decimals
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))}${sizes[i]}`
+}
 
 // Docker API integration
 
@@ -102,6 +122,9 @@ const parseAndRedactDockerData = data => {
 
   let nodeExporterServiceIDs = [];
   let runningNodeExportes = [];
+  let cadvisorServiceIDs = [];
+  let runningCadvisors = [];
+  let runningTasksID = [];
 
   for (let i = 0; i < data.nodes.length; i++) {
     const baseNode = data.nodes[i];
@@ -172,6 +195,11 @@ const parseAndRedactDockerData = data => {
         nodeExporterServiceIDs.push(baseService["ID"]);
       }
     }
+    if (useCadvisor) {
+      if (cadvisorServiceNameRegex.test(baseService["Spec"]["Name"])) {
+        cadvisorServiceIDs.push(baseService["ID"]);
+      }
+    }
   }
 
   for (let i = 0; i < data.tasks.length; i++) {
@@ -196,6 +224,7 @@ const parseAndRedactDockerData = data => {
       task["Slot"] = baseTask["Slot"]
     tasks.push(task);
 
+    // get addresses for metrics
     if (nodeExporterServiceIDs.length > 0) {
       if ((nodeExporterServiceIDs.includes(baseTask["ServiceID"])) &&
         (baseTask["Status"]["State"] === "running") &&
@@ -212,15 +241,43 @@ const parseAndRedactDockerData = data => {
         runningNodeExportes.push({ nodeID: baseTask["NodeID"], address: ipList[0] });
       }
     }
+    if (cadvisorServiceIDs.length > 0) {
+      if ((cadvisorServiceIDs.includes(baseTask["ServiceID"])) &&
+        (baseTask["Status"]["State"] === "running") &&
+        (baseTask["NetworksAttachments"] !== undefined)) {
+        let ipList = [];
+        // TODO: we use ip of the accessible network instead of ipList[0]
+        for (let j = 0; j < baseTask["NetworksAttachments"].length; j++) {
+          for (let k = 0; k < baseTask["NetworksAttachments"][j]["Addresses"].length; k++) {
+            let ip = baseTask["NetworksAttachments"][j]["Addresses"][k];
+            ipList.push(ip.split("/")[0]);
+          }
+        }
+        runningCadvisors.push({ address: ipList[0] });
+      }
+    }
+    if (baseTask["Status"]["State"] === "running") {
+      runningTasksID.push(baseTask["ID"]);
+    }
   }
 
   return {
     data: { nodes, networks, services, tasks },
-    runningNodeExportes
+    runningNodeExportes, runningCadvisors, runningTasksID
   };
 };
 
-const findMetricValue = (metrics, name, labels) => {
+const findMetricValue = (metrics, name, searchLabels) => {
+  let values = findAllMetricValue(metrics, name, searchLabels);
+  if (values.length > 0) {
+    return values[0]
+  }
+  return undefined;
+}
+
+
+const findAllMetricValue = (metrics, name, searchLabels) => {
+  let results = [];
   for (let i = 0; i < metrics.length; i++) {
     const metricsParent = metrics[i];
     if (metricsParent.name === name) {
@@ -228,28 +285,29 @@ const findMetricValue = (metrics, name, labels) => {
         const metric = metricsParent.metrics[j];
         let allLabelsExists = true;
         if (metric.labels !== undefined) {
-          for (let k = 0; k < labels.length; k++) {
-            const label = labels[k];
+          for (let k = 0; k < searchLabels.length; k++) {
+            const label = searchLabels[k];
             if (metric.labels[label.name] !== label.value) {
               allLabelsExists = false;
             }
           }
         }
         if (allLabelsExists) {
-          return parseFloat(metric.value);
+          results.push(parseFloat(metric.value));
         }
       }
     }
   }
-  return undefined;
+  return results;
 }
+
 
 const currentTime = () => Math.floor(Date.now() / 1000);
 
 const fetchNodeMetrics = ({ lastData, lastRunningNodeExportes, lastNodeMetrics }, callback) => {
   let nodeMetrics = [];
   if (lastRunningNodeExportes.length > 0) { // should fetch metrics
-    fetchMetrics(lastRunningNodeExportes.map(({ address }) => `http://${address}:9100/metrics`))
+    fetchMetrics(lastRunningNodeExportes.map(({ address }) => `http://${address}:${nodeExporterPort}/metrics`))
       .then(metricsList => {
         for (let i = 0; i < lastData.nodes.length; i++) {
           let node = lastData.nodes[i];
@@ -311,11 +369,65 @@ const fetchNodeMetrics = ({ lastData, lastRunningNodeExportes, lastNodeMetrics }
         callback(nodeMetrics);
       })
       .catch(e => {
-        console.error('Could not fetch metrics', e)
+        console.error('Could not fetch node metrics', e)
         callback(nodeMetrics);
       });
   } else {
     callback(nodeMetrics);
+  }
+}
+
+const fetchTasksMetrics = ({ lastRunningCadvisors, lastRunningTasksMetrics, lastRunningTasksID }, callback) => {
+  let runningTasksMetrics = [];
+  if (lastRunningCadvisors.length > 0) { // should fetch metrics
+    fetchMetrics(lastRunningCadvisors.map(({ address }) => `http://${address}:${cadvisorPort}/metrics`))
+      .then(metricsList => {
+        let allMetrics = [];
+        for (let i = 0; i < metricsList.length; i++) {
+          allMetrics = allMetrics.concat(metricsList[i]);
+        }
+        for (let i = 0; i < lastRunningTasksID.length; i++) {
+          let taskID = lastRunningTasksID[i];
+          const metricToSave = { taskID, fetchTime: currentTime() };
+
+          // last metrics
+          let lastMetricsOfThisTask = {};
+          let timeDiffFromLastMetrics = 0;
+          for (let k = 0; k < lastRunningTasksMetrics.length; k++) {
+            if (lastRunningTasksMetrics[k].taskID === taskID) {
+              lastMetricsOfThisTask = lastRunningTasksMetrics[k];
+              timeDiffFromLastMetrics = metricToSave.fetchTime - lastMetricsOfThisTask.fetchTime
+              break;
+            }
+          }
+
+          // cpu
+          metricToSave.cpuSecondsTotal = sum(findAllMetricValue(allMetrics, "container_cpu_usage_seconds_total", [{ name: "container_label_com_docker_swarm_task_id", value: taskID }]));
+          if (
+            (lastMetricsOfThisTask.cpuSecondsTotal !== undefined) &&
+            (timeDiffFromLastMetrics > 0)
+          ) {
+            metricToSave.cpuPercent = Math.round((metricToSave.cpuSecondsTotal - lastMetricsOfThisTask.cpuSecondsTotal) * 100 / timeDiffFromLastMetrics);
+          }
+
+          // memory
+          let memoryRSS = findMetricValue(allMetrics, "container_memory_rss", [{ name: "container_label_com_docker_swarm_task_id", value: taskID }]);
+          if (
+            (memoryRSS !== undefined)
+          ) {
+            metricToSave.memoryBytes = memoryRSS;
+          }
+
+          runningTasksMetrics.push(metricToSave);
+        }
+        callback(runningTasksMetrics);
+      })
+      .catch(e => {
+        console.error('Could not fetch tasks metrics', e)
+        callback(runningTasksMetrics);
+      });
+  } else {
+    callback(runningTasksMetrics);
   }
 }
 
@@ -341,6 +453,22 @@ const addNodeMetricsToData = (data, lastNodeMetrics) => {
         }
         if (info) {
           node.info = info;
+        }
+      }
+    }
+  }
+}
+const addTaskMetricsToData = (data, lastRunningTasksMetrics) => {
+  for (let i = 0; i < data.tasks.length; i++) {
+    const task = data.tasks[i];
+    for (let j = 0; j < lastRunningTasksMetrics.length; j++) {
+      const taskMetric = lastRunningTasksMetrics[j];
+      if (taskMetric.taskID === task["ID"]) {
+        if (taskMetric.cpuPercent !== undefined) {
+          task.cpuInfo = `cpu: ${taskMetric.cpuPercent}%`;
+        }
+        if (taskMetric.memoryBytes !== undefined) {
+          task.memoryInfo = `mem: ${formatBytes(taskMetric.memoryBytes)}`;
         }
       }
     }
@@ -408,8 +536,11 @@ if (enableAuthentication) {
 // });
 
 app.get('/debug-log', (req, res) => {
-  console.log("lastRunningNodeExportes", lastRunningNodeExportes);
-  console.log("lastNodeMetrics", lastNodeMetrics);
+  // console.log("lastRunningNodeExportes", lastRunningNodeExportes);
+  // console.log("lastNodeMetrics", lastNodeMetrics);
+  // console.log("lastRunningCadvisors", lastRunningCadvisors);
+  console.log("lastRunningTasksID", lastRunningTasksID);
+  // console.log("lastRunningTasksMetrics", lastRunningTasksMetrics);
   console.log("---------------");
   res.send("logged.")
 });
@@ -418,6 +549,9 @@ app.get('/debug-log', (req, res) => {
 
 let lastRunningNodeExportes = [];
 let lastNodeMetrics = [];
+let lastRunningCadvisors = [];
+let lastRunningTasksID = [];
+let lastRunningTasksMetrics = [];
 
 let listeners = [];
 let lastData = {};
@@ -426,8 +560,9 @@ let lastSha = '';
 setInterval(() => { // update docker data
   fetchDockerData()
     .then(it => {
-      let { data, runningNodeExportes } = parseAndRedactDockerData(it);
+      let { data, runningNodeExportes, runningCadvisors, runningTasksID } = parseAndRedactDockerData(it);
       addNodeMetricsToData(data, lastNodeMetrics); // it makes fetching of main data and node metrics independent.
+      addTaskMetricsToData(data, lastRunningTasksMetrics); // it makes fetching of main data and node metrics independent.
 
       data = stabilize(data);
       const sha = sha1OfData(data);
@@ -437,18 +572,26 @@ setInterval(() => { // update docker data
       lastSha = sha;
       lastData = data;
       lastRunningNodeExportes = runningNodeExportes;
+      lastRunningCadvisors = runningCadvisors;
+      lastRunningTasksID = runningTasksID;
 
       listeners = dropClosed(listeners);
       publish(listeners, data);
     })
     .catch(e => console.error('Could not publish', e)); // eslint-disable-line no-console
-}, 500); // refreshs each 0.5s
+}, 1000); // refreshs each 1s
 
 setInterval(() => { // update node data
   fetchNodeMetrics({ lastData, lastRunningNodeExportes, lastNodeMetrics }, (nodeMetrics) => {
     lastNodeMetrics = nodeMetrics;
   })
-}, 2000); // refreshs each 2s
+}, 5000); // refreshs each 5s
+
+setInterval(() => { // update node data
+  fetchTasksMetrics({ lastRunningCadvisors, lastRunningTasksMetrics, lastRunningTasksID }, (runningTasksMetrics) => {
+    lastRunningTasksMetrics = runningTasksMetrics;
+  })
+}, 5000); // refreshs each 5s
 
 function onWSConnection(ws, req) {
   let params = undefined;

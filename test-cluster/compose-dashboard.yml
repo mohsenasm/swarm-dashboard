@@ -12,6 +12,7 @@ services:
       ENABLE_AUTHENTICATION: "false"
       ENABLE_HTTPS: "false"
       NODE_EXPORTER_SERVICE_NAME_REGEX: "node-exporter"
+      CADVISOR_SERVICE_NAME_REGEX: "cadvisor"
     networks:
       - monitoring_net
 
