@@ -19,6 +19,8 @@ const password = process.env.PASSWORD || "supersecret";
 const enableHTTPS = process.env.ENABLE_HTTPS === "true";
 const legoPath = process.env.LEGO_PATH;
 const httpsHostname = process.env.HTTPS_HOSTNAME;
+const dockerUpdateInterval = parseInt(process.env.DOCKER_UPDATE_INTERVAL || "1000");
+const metricsUpdateInterval = parseInt(process.env.METRICS_UPDATE_INTERVAL|| "5000");
 
 const _nodeExporterServiceNameRegex = process.env.NODE_EXPORTER_SERVICE_NAME_REGEX || "";
 const useNodeExporter = _nodeExporterServiceNameRegex !== "";
@@ -590,19 +592,19 @@ setInterval(() => { // update docker data
       publish(listeners, data);
     })
     .catch(e => console.error('Could not publish', e)); // eslint-disable-line no-console
-}, 1000); // refreshs each 1s
+}, dockerUpdateInterval); // refreshs each 1s
 
 setInterval(() => { // update node data
   fetchNodeMetrics({ lastData, lastRunningNodeExportes, lastNodeMetrics }, (nodeMetrics) => {
     lastNodeMetrics = nodeMetrics;
   })
-}, 5000); // refreshs each 5s
+}, metricsUpdateInterval); // refreshs each 5s
 
 setInterval(() => { // update node data
   fetchTasksMetrics({ lastRunningCadvisors, lastRunningTasksMetrics, lastRunningTasksID }, (runningTasksMetrics) => {
     lastRunningTasksMetrics = runningTasksMetrics;
   })
-}, 5000); // refreshs each 5s
+}, metricsUpdateInterval); // refreshs each 5s
 
 function onWSConnection(ws, req) {
   let params = undefined;
