@@ -16,7 +16,6 @@ services:
     networks:
       - monitoring_net
 
-
 networks:
   monitoring_net:
     external:

@@ -12,6 +12,7 @@ services:
       ENABLE_AUTHENTICATION: "false"
       ENABLE_HTTPS: "false"
       NODE_EXPORTER_SERVICE_NAME_REGEX: "node-exporter"
+      CADVISOR_SERVICE_NAME_REGEX: "cadvisor"
     deploy:
       placement:
         constraints:
@@ -23,5 +24,16 @@ services:
       - '/:/host:ro'
     command:
       - '--path.rootfs=/host'
+    deploy:
+      mode: global
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
     deploy:
       mode: global
