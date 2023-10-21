@@ -288,8 +288,14 @@ const findAllMetricValue = (metrics, name, searchLabels) => {
         if (metric.labels !== undefined) {
           for (let k = 0; k < searchLabels.length; k++) {
             const label = searchLabels[k];
-            if (metric.labels[label.name] !== label.value) {
-              allLabelsExists = false;
+            if (label.value !== undefined) {
+              if (metric.labels[label.name] !== label.value) {
+                allLabelsExists = false;
+              }
+            } else if (label.notValue !== undefined) {
+              if (metric.labels[label.name] === label.notValue) {
+                allLabelsExists = false;
+              }
             }
           }
         }
@@ -337,7 +343,7 @@ const fetchNodeMetrics = ({ lastData, lastRunningNodeExportes, lastNodeMetrics }
               }
 
               // cpu
-              metricToSave.cpuSecondsTotal = findMetricValue(metricsOfThisNode, "process_cpu_seconds_total", []);
+              metricToSave.cpuSecondsTotal = sum(findAllMetricValue(metricsOfThisNode, "node_cpu_seconds_total", [{ name: "mode", notValue: "idle" }]));
               if (
                 (metricToSave.cpuSecondsTotal !== undefined) &&
                 (lastMetricsOfThisNode.cpuSecondsTotal !== undefined) &&
@@ -412,12 +418,16 @@ const fetchTasksMetrics = ({ lastRunningCadvisors, lastRunningTasksMetrics, last
           }
 
           // memory
-          let memoryRSS = findMetricValue(allMetrics, "container_memory_rss", [{ name: "container_label_com_docker_swarm_task_id", value: taskID }]);
-          if (
-            (memoryRSS !== undefined)
-          ) {
-            metricToSave.memoryBytes = memoryRSS;
-          }
+          metricToSave.memoryBytes = findMetricValue(allMetrics, "container_memory_rss", [{ name: "container_label_com_docker_swarm_task_id", value: taskID }]);
+          // let memoryUsage = findMetricValue(allMetrics, "container_memory_usage_bytes", [{ name: "container_label_com_docker_swarm_task_id", value: taskID }]);
+          // let memoryCache = findMetricValue(allMetrics, "container_memory_cache", [{ name: "container_label_com_docker_swarm_task_id", value: taskID }]);
+          // console.log(memoryUsage, memoryCache);
+          // if (
+          //   (memoryUsage !== undefined) &&
+          //   (memoryCache !== undefined)
+          // ) {
+          //   metricToSave.memoryBytes = memoryUsage - memoryCache
+          // }
 
           runningTasksMetrics.push(metricToSave);
         }
@@ -536,15 +546,15 @@ if (enableAuthentication) {
 //   fetchMetrics(lastRunningNodeExportes.map(({ address }) => `http://${address}:9100/metrics`)).then(it => res.send(it)).catch(e => res.send(e.toString()));
 // });
 
-app.get('/debug-log', (req, res) => {
-  // console.log("lastRunningNodeExportes", lastRunningNodeExportes);
-  // console.log("lastNodeMetrics", lastNodeMetrics);
-  // console.log("lastRunningCadvisors", lastRunningCadvisors);
-  console.log("lastRunningTasksID", lastRunningTasksID);
-  // console.log("lastRunningTasksMetrics", lastRunningTasksMetrics);
-  console.log("---------------");
-  res.send("logged.")
-});
+// app.get('/debug-log', (req, res) => {
+//   // console.log("lastRunningNodeExportes", lastRunningNodeExportes);
+//   // console.log("lastNodeMetrics", lastNodeMetrics);
+//   // console.log("lastRunningCadvisors", lastRunningCadvisors);
+//   console.log("lastRunningTasksID", lastRunningTasksID);
+//   // console.log("lastRunningTasksMetrics", lastRunningTasksMetrics);
+//   console.log("---------------");
+//   res.send("logged.")
+// });
 
 // start the polling
 
