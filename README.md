@@ -21,7 +21,7 @@ version: "3"
 
 services:
   swarm-dashboard:
-    image: mohsenasm/swarm-dashboard:dev_stats
+    image: mohsenasm/swarm-dashboard:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
