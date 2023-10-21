@@ -17,7 +17,7 @@ statusString state desiredState =
 
 
 task : Service -> AssignedTask -> Html msg
-task service { status, desiredState, containerSpec, slot } =
+task service { status, desiredState, containerSpec, slot, info } =
     let
         classes =
             [ ( status.state, True )
@@ -32,12 +32,39 @@ task service { status, desiredState, containerSpec, slot } =
 
                 Nothing ->
                     ""
+        
+        cpuInfo =
+            case info.cpu of
+                Just s ->
+                    [
+                        div [ class "tag left" ] [ text s ]
+                    ]
+
+                Nothing ->
+                    []
+
+        memoryInfo =
+            case info.memory of
+                Just s ->
+                    [
+                        div [ class "tag right" ] [ text s ]
+                    ]
+
+                Nothing ->
+                    []
     in
         li [ classList classes ]
-            [ text (service.name ++ slotLabel slot)
-            , br [] []
-            , text (statusString status.state desiredState)
-            ]
+            (List.concat [
+                cpuInfo
+                , (List.concat [
+                    memoryInfo
+                    , [ text (service.name ++ slotLabel slot)
+                    , br [] []
+                    , text (statusString status.state desiredState)
+                    ]
+                ])
+            ])
+            
 
 
 serviceNode : Service -> TaskIndex -> Node -> Html msg

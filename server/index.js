@@ -217,6 +217,7 @@ const parseAndRedactDockerData = data => {
           "Image": baseTask["Spec"]["ContainerSpec"]["Image"]
         }
       },
+      "info": {} // for cpu and memory
     };
     if (baseTask["NodeID"] !== undefined)
       task["NodeID"] = baseTask["NodeID"]
@@ -465,10 +466,10 @@ const addTaskMetricsToData = (data, lastRunningTasksMetrics) => {
       const taskMetric = lastRunningTasksMetrics[j];
       if (taskMetric.taskID === task["ID"]) {
         if (taskMetric.cpuPercent !== undefined) {
-          task.cpuInfo = `cpu: ${taskMetric.cpuPercent}%`;
+          task.info.cpu = `cpu: ${taskMetric.cpuPercent}%`;
         }
         if (taskMetric.memoryBytes !== undefined) {
-          task.memoryInfo = `mem: ${formatBytes(taskMetric.memoryBytes)}`;
+          task.info.memory = `mem: ${formatBytes(taskMetric.memoryBytes)}`;
         }
       }
     }

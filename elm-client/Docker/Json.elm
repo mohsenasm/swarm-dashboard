@@ -74,9 +74,16 @@ taskStatus =
         (Json.at [ "State" ] Json.string)
 
 
+taskInfo : Json.Decoder TaskInfo
+taskInfo =
+    Json.map2 TaskInfo
+        (Json.maybe (Json.at [ "cpu" ] Json.string))
+        (Json.maybe (Json.at [ "memory" ] Json.string))
+
+
 task : Json.Decoder Task
 task =
-    Json.map7 Task
+    Json.map8 Task
         (Json.at [ "ID" ] Json.string)
         (Json.at [ "ServiceID" ] Json.string)
         (Json.maybe (Json.at [ "NodeID" ] Json.string))
@@ -84,6 +91,7 @@ task =
         (Json.at [ "Status" ] taskStatus)
         (Json.at [ "DesiredState" ] Json.string)
         (Json.at [ "Spec", "ContainerSpec" ] containerSpec)
+        (Json.at [ "info" ] taskInfo)
 
 
 dockerApi : Json.Decoder DockerApiData
