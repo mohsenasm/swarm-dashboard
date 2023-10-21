@@ -13,13 +13,14 @@ import Http
 localWebsocket : Navigation.Location -> String
 localWebsocket location =
     if location.protocol == "https:" then
-        "wss://" ++ location.host ++ "/stream"
+        "wss://" ++ location.host ++ location.pathname ++ "stream"
     else
-        "ws://" ++ location.host ++ "/stream"
+        "ws://" ++ location.host ++ location.pathname ++ "stream"
 
 
 type alias Model =
-    { webSocketUrl : String
+    { pathname : String
+    , webSocketUrl : String
     , authToken : String
     , swarm : Docker
     , tasks : TaskIndex
@@ -28,33 +29,30 @@ type alias Model =
 
 
 type Msg
-    = GetAuthToken
-    | AuthTokenReceived (Result Http.Error String)
+    = AuthTokenReceived (Result Http.Error String)
     | UrlChange Navigation.Location
     | Receive String
 
-authTokenGetter : Cmd Msg
-authTokenGetter =
-    Http.send AuthTokenReceived (Http.getString "/auth_token")
+authTokenGetter : String -> Cmd Msg
+authTokenGetter pathname =
+    Http.send AuthTokenReceived ( Http.getString ( pathname ++ "auth_token" ) )
 
 init : Navigation.Location -> ( Model, Cmd Msg )
 init location =
-    ( { webSocketUrl = localWebsocket location
+    ( { pathname = location.pathname
+      , webSocketUrl = localWebsocket location
       , authToken = ""
       , swarm = Docker.empty
       , tasks = Dict.empty
       , errors = []
       }
-    , authTokenGetter
+    , authTokenGetter location.pathname
     )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
-        GetAuthToken ->
-            ( model, authTokenGetter )
-        
+    case msg of        
         AuthTokenReceived result ->
             case result of
                 Ok authToken ->
@@ -70,7 +68,7 @@ update msg model =
 
                 Err error ->
                     if String.contains "WrongAuthToken" error then
-                        ( { model | errors = error :: model.errors }, authTokenGetter )
+                        ( { model | errors = error :: model.errors }, ( authTokenGetter model.pathname ) )
                     else
                         ( { model | errors = error :: model.errors }, Cmd.none )
 

@@ -11,19 +11,20 @@ services:
       - 8081:8081
     environment:
       PORT: 8081
-      ENABLE_AUTHENTICATION: "false"
+      # PATH_PREFIX: "/"
+      # ENABLE_AUTHENTICATION: "false"
       # ENABLE_AUTHENTICATION: "true"
       # AUTHENTICATION_REALM: "KuW2i9GdLIkql"
       # USERNAME: "admin"
       # PASSWORD: "supersecret"
-      ENABLE_HTTPS: "false"
+      # ENABLE_HTTPS: "false"
       # ENABLE_HTTPS: "true"
       # HTTPS_HOSTNAME: "example.com"
       # LEGO_NEW_COMMAND_ARGS: "--accept-tos --email=you@example.com --domains=example.com --dns cloudflare run"
       # LEGO_RENEW_COMMAND_ARGS: "--accept-tos --email=you@example.com --domains=example.com --dns cloudflare renew"
       # CLOUDFLARE_EMAIL: "you@example.com"
       # CLOUDFLARE_API_KEY: "yourprivatecloudflareapikey"
-      NODE_EXPORTER_SERVICE_NAME_REGEX: "node-exporter"
+      # NODE_EXPORTER_SERVICE_NAME_REGEX: "node-exporter"
     deploy:
       replicas: 1
       update_config:

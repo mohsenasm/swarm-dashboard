@@ -33,6 +33,11 @@ const useCadvisor = _cadvisorServiceNameRegex !== "";
 const cadvisorServiceNameRegex = new RegExp(_cadvisorServiceNameRegex);
 const cadvisorPort = process.env.CADVISOR_PORT || "8080";
 
+let pathPrefix = process.env.PATH_PREFIX || "/";
+if (pathPrefix.endsWith("/")) {
+  pathPrefix = pathPrefix.slice(0, -1);
+}
+
 
 const sha1OfData = data =>
   createHash('sha1').update(JSON.stringify(data)).digest('hex');
@@ -525,30 +530,31 @@ const basicAuthConfig = () => basicAuth({
 const tokenStore = new Set();
 
 const app = express();
-
-app.use(express.static('client'));
-app.get('/_health', (req, res) => res.end());
+const router = express.Router();
+router.use(express.static('client'));
+router.get('/_health', (req, res) => res.end());
 if (enableAuthentication) {
-  app.get('/auth_token', basicAuthConfig(), (req, res) => {
+  router.get('/auth_token', basicAuthConfig(), (req, res) => {
     const token = uuidv4();
     tokenStore.add(token);
     res.send(token);
   });
 } else {
-  app.get('/auth_token', (req, res) => {
+  router.get('/auth_token', (req, res) => {
     res.send("no-auth-token-needed");
   });
 }
+app.use(pathPrefix + "/", router);
 
-// app.get('/debug-docker-data', (req, res) => {
+// router.get('/debug-docker-data', (req, res) => {
 //   fetchDockerData().then(it => res.send(it)).catch(e => res.send(e.toString()));
 // });
 
-// app.get('/debug-metrics', (req, res) => {
+// router.get('/debug-metrics', (req, res) => {
 //   fetchMetrics(lastRunningNodeExportes.map(({ address }) => `http://${address}:9100/metrics`)).then(it => res.send(it)).catch(e => res.send(e.toString()));
 // });
 
-// app.get('/debug-log', (req, res) => {
+// router.get('/debug-log', (req, res) => {
 //   // console.log("lastRunningNodeExportes", lastRunningNodeExportes);
 //   // console.log("lastNodeMetrics", lastNodeMetrics);
 //   // console.log("lastRunningCadvisors", lastRunningCadvisors);
@@ -643,7 +649,7 @@ if (enableHTTPS) {
   const httpsServer = https.createServer(credentials);
   httpsServer.on('request', app);
   const wsServer = new ws.Server({
-    path: '/stream',
+    path: pathPrefix + '/stream',
     server: httpsServer,
   });
   wsServer.on('connection', onWSConnection);
@@ -654,7 +660,7 @@ if (enableHTTPS) {
   const httpServer = http.createServer();
   httpServer.on('request', app);
   const wsServer = new ws.Server({
-    path: '/stream',
+    path: pathPrefix + '/stream',
     server: httpServer,
   });
   wsServer.on('connection', onWSConnection);
