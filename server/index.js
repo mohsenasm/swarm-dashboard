@@ -546,6 +546,7 @@ if (enableAuthentication) {
   });
 }
 if (debugMode) {
+  console.log("debug mode is active");
   router.get('/debug-log', (req, res) => {
     console.log("lastRunningNodeExportes", lastRunningNodeExportes);
     console.log("lastNodeMetrics", lastNodeMetrics);
