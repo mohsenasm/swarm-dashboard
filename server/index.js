@@ -20,7 +20,7 @@ const enableHTTPS = process.env.ENABLE_HTTPS === "true";
 const legoPath = process.env.LEGO_PATH || "/lego-files";
 const httpsHostname = process.env.HTTPS_HOSTNAME;
 const dockerUpdateInterval = parseInt(process.env.DOCKER_UPDATE_INTERVAL || "1000");
-const metricsUpdateInterval = parseInt(process.env.METRICS_UPDATE_INTERVAL|| "5000");
+const metricsUpdateInterval = parseInt(process.env.METRICS_UPDATE_INTERVAL || "5000");
 const debugMode = process.env.DEBUG_MODE === "true";
 
 const _nodeExporterServiceNameRegex = process.env.NODE_EXPORTER_SERVICE_NAME_REGEX || "";
@@ -44,7 +44,7 @@ const sha1OfData = data =>
   createHash('sha1').update(JSON.stringify(data)).digest('hex');
 
 const sum = (arr) => {
-  var res = 0; for (let i = 0; i < arr.length; i++) { res += arr[i]; } return res;
+  var res = undefined; for (let i = 0; i < arr.length; i++) { if (res === undefined) res = 0; res += arr[i]; } return res;
 }
 
 function formatBytes(bytes, decimals = 0) {
