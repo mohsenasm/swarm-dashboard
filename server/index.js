@@ -545,8 +545,6 @@ if (enableAuthentication) {
     res.send("no-auth-token-needed");
   });
 }
-app.use(pathPrefix + "/", router);
-
 if (debugMode) {
   router.get('/debug-log', (req, res) => {
     console.log("lastRunningNodeExportes", lastRunningNodeExportes);
@@ -558,6 +556,8 @@ if (debugMode) {
     res.send("logged.")
   });
 }
+
+app.use(pathPrefix + "/", router);
 
 // start the polling
 
