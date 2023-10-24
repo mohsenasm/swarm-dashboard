@@ -21,6 +21,7 @@ const legoPath = process.env.LEGO_PATH || "/lego-files";
 const httpsHostname = process.env.HTTPS_HOSTNAME;
 const dockerUpdateInterval = parseInt(process.env.DOCKER_UPDATE_INTERVAL || "1000");
 const metricsUpdateInterval = parseInt(process.env.METRICS_UPDATE_INTERVAL|| "5000");
+const debugMode = process.env.DEBUG_MODE === "true";
 
 const _nodeExporterServiceNameRegex = process.env.NODE_EXPORTER_SERVICE_NAME_REGEX || "";
 const useNodeExporter = _nodeExporterServiceNameRegex !== "";
@@ -546,23 +547,17 @@ if (enableAuthentication) {
 }
 app.use(pathPrefix + "/", router);
 
-// router.get('/debug-docker-data', (req, res) => {
-//   fetchDockerData().then(it => res.send(it)).catch(e => res.send(e.toString()));
-// });
-
-// router.get('/debug-metrics', (req, res) => {
-//   fetchMetrics(lastRunningNodeExportes.map(({ address }) => `http://${address}:9100/metrics`)).then(it => res.send(it)).catch(e => res.send(e.toString()));
-// });
-
-// router.get('/debug-log', (req, res) => {
-//   // console.log("lastRunningNodeExportes", lastRunningNodeExportes);
-//   // console.log("lastNodeMetrics", lastNodeMetrics);
-//   // console.log("lastRunningCadvisors", lastRunningCadvisors);
-//   console.log("lastRunningTasksID", lastRunningTasksID);
-//   // console.log("lastRunningTasksMetrics", lastRunningTasksMetrics);
-//   console.log("---------------");
-//   res.send("logged.")
-// });
+if (debugMode) {
+  router.get('/debug-log', (req, res) => {
+    console.log("lastRunningNodeExportes", lastRunningNodeExportes);
+    console.log("lastNodeMetrics", lastNodeMetrics);
+    console.log("lastRunningCadvisors", lastRunningCadvisors);
+    console.log("lastRunningTasksID", lastRunningTasksID);
+    console.log("lastRunningTasksMetrics", lastRunningTasksMetrics);
+    console.log("---------------");
+    res.send("logged.")
+  });
+}
 
 // start the polling
 
