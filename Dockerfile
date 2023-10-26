@@ -6,7 +6,7 @@ WORKDIR /home/node/app
 FROM base AS dependencies
 ENV NODE_ENV production
 COPY package.json yarn.lock ./
-RUN yarn install --production
+RUN yarn install --production --verbose
 
 FROM --platform=linux/amd64 node:10.16.0-buster-slim AS elm-build
 RUN npm install --unsafe-perm -g elm@latest-0.18.0 --silent
