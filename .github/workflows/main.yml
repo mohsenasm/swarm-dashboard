@@ -46,7 +46,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-      # yarn install can be very slow in some arm platforms, beacase of QEMU.
+      # yarn install can be very slow in some arm platforms, because of QEMU.
       # https://github.com/nodejs/docker-node/issues/1335
       # -
       #   name: Build and push
