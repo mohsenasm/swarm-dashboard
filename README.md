@@ -2,6 +2,8 @@
 
 A simple monitoring dashboard for Docker in Swarm Mode.
 
+[![Publish Docker image](https://github.com/mohsenasm/swarm-dashboard/actions/workflows/main.yml/badge.svg)](https://github.com/mohsenasm/swarm-dashboard/actions/workflows/main.yml)
+
 ![Example Dashboard](./swarm.gif)
 
 Swarm Dashboard shows you all the tasks running on a Docker Swarm organized
@@ -122,7 +124,7 @@ There are two considerations for any serious deployment of the dashboard:
 * Show more service details (published port, image name, and version)
 * Node / Service / Task details panel
 
-Both feature requests and pull requests are welcome.
+Both feature requests and pull requests are welcome. If you want to build/test the code locally, see [commands.md](./test-cluster/commands.md) in the `test-cluster` directory.
 
 ### Prior art
 

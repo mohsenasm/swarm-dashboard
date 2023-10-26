@@ -1,4 +1,4 @@
-FROM node:10-alpine AS base
+FROM node:20-alpine AS base
 RUN apk add --update tini lego curl && rm -r /var/cache
 ENTRYPOINT ["/sbin/tini", "--"]
 WORKDIR /home/node/app
@@ -8,7 +8,6 @@ ENV NODE_ENV production
 COPY package.json yarn.lock ./
 RUN yarn install --production
 
-# elm doesn't work under alpine 6 or 8
 FROM --platform=linux/amd64 node:10.16.0-buster-slim AS elm-build
 RUN npm install --unsafe-perm -g elm@latest-0.18.0 --silent
 RUN apt-get update; apt-get install -y netbase
@@ -26,13 +25,12 @@ COPY --from=dependencies /home/node/app/node_modules node_modules
 COPY --from=elm-build /home/node/app/elm-client/client/ client
 COPY server server
 COPY server.sh server.sh
+COPY healthcheck.sh healthcheck.sh
 COPY crontab /var/spool/cron/crontabs/root
 
-# ENV PORT=8080
-# HEALTHCHECK --interval=5s --timeout=3s \
-#   CMD curl --fail http://localhost:$PORT/_health || exit 1
-# HEALTHCHECK --interval=5s --timeout=3s \
-#   CMD curl --insecure --fail https://localhost:$PORT/_health || exit 1
+ENV PORT=8080
+HEALTHCHECK --interval=5s --timeout=3s \
+  CMD sh healthcheck.sh
 
 # Run under Tini
 CMD ["sh", "server.sh"]
