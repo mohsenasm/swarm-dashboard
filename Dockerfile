@@ -9,7 +9,7 @@ COPY package.json yarn.lock ./
 RUN yarn install --production
 
 # elm doesn't work under alpine 6 or 8
-FROM node:10.16.0-buster-slim AS elm-build
+FROM --platform=linux/amd64 node:10.16.0-buster-slim AS elm-build
 RUN npm install --unsafe-perm -g elm@latest-0.18.0 --silent
 RUN apt-get update; apt-get install -y netbase
 WORKDIR /home/node/app/elm-client
