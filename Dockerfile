@@ -29,8 +29,8 @@ COPY healthcheck.sh healthcheck.sh
 COPY crontab /var/spool/cron/crontabs/root
 
 ENV PORT=8080
-HEALTHCHECK --interval=60s --timeout=30s \
-  CMD sh healthcheck.sh
+# HEALTHCHECK --interval=60s --timeout=30s \
+#   CMD sh healthcheck.sh
 
 # Run under Tini
 CMD ["sh", "server.sh"]
