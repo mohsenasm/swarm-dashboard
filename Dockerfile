@@ -1,6 +1,5 @@
 FROM node:10-alpine AS base
-RUN apk add --update tini curl \
-  && rm -r /var/cache
+RUN apk add --update tini lego curl && rm -r /var/cache
 ENTRYPOINT ["/sbin/tini", "--"]
 WORKDIR /home/node/app
 
@@ -21,10 +20,6 @@ RUN elm make Main.elm --output=client/index.js
 
 FROM base AS release
 WORKDIR /home/node/app
-RUN wget -O lego_v4.14.2_linux_amd64.tar.gz https://github.com/go-acme/lego/releases/download/v4.14.2/lego_v4.14.2_linux_amd64.tar.gz \
- && tar -xzf lego_v4.14.2_linux_amd64.tar.gz \
- && mv ./lego /usr/local/bin/lego \
- && rm lego_v4.14.2_linux_amd64.tar.gz
 ENV LEGO_PATH=/lego-files
 
 COPY --from=dependencies /home/node/app/node_modules node_modules
