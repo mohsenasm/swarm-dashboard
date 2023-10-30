@@ -67,8 +67,8 @@ update msg model =
                     ( { model | swarm = serverData, tasks = groupBy taskIndexKey serverData.assignedTasks }, Cmd.none )
 
                 Err error ->
-                    if String.contains "WrongAuthToken" error then
-                        ( { model | errors = error :: model.errors }, ( authTokenGetter model.pathname ) )
+                    if String.contains "WrongAuthToken" error then -- caused by a reconnection
+                        ( model, ( authTokenGetter model.pathname ) )
                     else
                         ( { model | errors = error :: model.errors }, Cmd.none )
 
@@ -87,11 +87,11 @@ subscriptions model =
 view : Model -> Html Msg
 view { swarm, tasks, errors } =
     let
-        { services, nodes, networks } =
+        { services, nodes, networks, refreshTime } =
             swarm
     in
         div []
-            [ UI.swarmGrid services nodes networks tasks
+            [ UI.swarmGrid services nodes networks tasks refreshTime
             , ul [] (List.map (\e -> li [] [ text e ]) errors)
             ]
 

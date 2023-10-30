@@ -127,6 +127,7 @@ type alias Docker =
     , services : List Service
     , plannedTasks : List PlannedTask
     , assignedTasks : List AssignedTask
+    , refreshTime : String
     }
 
 
@@ -135,6 +136,7 @@ type alias DockerApiData =
     , networks : List Network
     , services : List RawService
     , tasks : List Task
+    , refreshTime : String
     }
 
 

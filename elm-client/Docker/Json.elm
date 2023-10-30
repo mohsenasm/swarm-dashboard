@@ -96,11 +96,12 @@ task =
 
 dockerApi : Json.Decoder DockerApiData
 dockerApi =
-    Json.map4 DockerApiData
+    Json.map5 DockerApiData
         (Json.at [ "nodes" ] (Json.list node))
         (Json.at [ "networks" ] (Json.list network))
         (Json.at [ "services" ] (Json.list service))
         (Json.at [ "tasks" ] (Json.list task))
+        (Json.at [ "refreshTime" ] Json.string)
 
 
 parse : String -> Result String DockerApiData

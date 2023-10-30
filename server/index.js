@@ -123,6 +123,8 @@ const stabilize = data => {
 };
 
 const parseAndRedactDockerData = data => {
+  const refreshTime = new Date().toLocaleString();
+
   let nodes = [];
   let networks = [];
   let services = [];
@@ -271,7 +273,7 @@ const parseAndRedactDockerData = data => {
   }
 
   return {
-    data: { nodes, networks, services, tasks },
+    data: { nodes, networks, services, tasks, refreshTime },
     runningNodeExportes, runningCadvisors, runningTasksID
   };
 };

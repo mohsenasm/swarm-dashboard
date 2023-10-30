@@ -129,18 +129,21 @@ node node =
             ])
 
 
-swarmHeader : List Node -> List Network -> Html msg
-swarmHeader nodes networks =
-    tr [] ((th [] [ img [ src "docker_logo.svg" ] [] ]) :: Networks.header networks :: (nodes |> List.map node))
+swarmHeader : List Node -> List Network -> String -> Html msg
+swarmHeader nodes networks refreshTime =
+    tr [] ((th [] [ img [ src "docker_logo.svg" ] []
+                    , div [ class "refresh-time" ] [ text refreshTime ]
+                  ]
+           ) :: Networks.header networks :: (nodes |> List.map node))
 
 
-swarmGrid : List Service -> List Node -> List Network -> TaskIndex -> Html msg
-swarmGrid services nodes networks taskAllocations =
+swarmGrid : List Service -> List Node -> List Network -> TaskIndex -> String -> Html msg
+swarmGrid services nodes networks taskAllocations refreshTime =
     let
         networkConnections =
             Networks.buildConnections services networks
     in
         table []
-            [ thead [] [ swarmHeader nodes networks ]
+            [ thead [] [ swarmHeader nodes networks refreshTime ]
             , tbody [] (List.map (serviceRow nodes taskAllocations networkConnections) services)
             ]

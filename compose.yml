@@ -12,6 +12,8 @@ services:
     environment:
       PORT: 8081
       # PATH_PREFIX: "/"
+      # TZ: "Europe/Amsterdam"
+      # DOCKER_UPDATE_INTERVAL: 4000
       # ENABLE_AUTHENTICATION: "false"
       # ENABLE_AUTHENTICATION: "true"
       # AUTHENTICATION_REALM: "KuW2i9GdLIkql"
