@@ -49,7 +49,7 @@ services:
       mode: global
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw
