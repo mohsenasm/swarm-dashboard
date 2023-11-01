@@ -66,7 +66,7 @@ and deploy with
 $ docker stack deploy -c compose.yml sd
 ```
 
-Note that the usage of `node-exporter` and `cadvisor` are optional, to fetch node CPU/Memory/Disk usage and containers' CPU/Memory usage respectively. If you don't specify `NODE_EXPORTER_SERVICE_NAME_REGEX` and `CADVISOR_SERVICE_NAME_REGEX` envs, the default is not using these this feature, because of backward compatibility.
+Note that the usage of `node-exporter` and `cadvisor` are optional, to fetch node CPU/Memory/Disk usage and containers' CPU/Memory usage respectively. If you don't specify `NODE_EXPORTER_SERVICE_NAME_REGEX` and `CADVISOR_SERVICE_NAME_REGEX` envs, the default is not using this feature, because of backward compatibility.
 
 ## Advance Usage
 
