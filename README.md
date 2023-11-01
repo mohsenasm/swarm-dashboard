@@ -29,7 +29,7 @@ services:
     ports:
       - 8080:8080
     environment:
-      PORT: 8080
+      TZ: "your_timezone"
       ENABLE_AUTHENTICATION: "false"
       ENABLE_HTTPS: "false"
       NODE_EXPORTER_SERVICE_NAME_REGEX: "node-exporter"
@@ -76,7 +76,7 @@ List of environment variables for more customization:
 |--------------------------------------|-------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | PORT                                 | 8080                                                                                                              | HTTP / HTTPS port.                                                                                                                                                               |
 | PATH_PREFIX                          | /prefix_path                                                                                                      | All HTTP and WebSocket connections will use this path as a prefix.                                                                                                               |
-| TZ                                   | Europe/Amsterdam                                                                                                  | Set the timezone for the time reported in the dashboard.                                                                                                               |
+| TZ                                   | Asia/Tehran                                                                                                  | Set the timezone for the time reported in the dashboard.                                                                                                               |
 | ENABLE_AUTHENTICATION                | true                                                                                                              | false by default.                                                                                                                                                                |
 | AUTHENTICATION_REALM                 | MyRealm                                                                                                           | Use this env if ENABLE_AUTHENTICATION is `true`.                                                                                                                                 |
 | USERNAME                             | admin                                                                                                             | Use this env if ENABLE_AUTHENTICATION is `true`.                                                                                                                                 |

@@ -10,6 +10,7 @@ const basicAuth = require('express-basic-auth')
 const { v4: uuidv4 } = require('uuid');
 const url = require('url');
 const { sortBy, prop } = require('ramda');
+const moment = require('moment');
 
 const port = process.env.PORT || 8080;
 const realm = process.env.AUTHENTICATION_REALM || "KuW2i9GdLIkql";
@@ -123,7 +124,7 @@ const stabilize = data => {
 };
 
 const parseAndRedactDockerData = data => {
-  const refreshTime = new Date().toLocaleString();
+  const refreshTime = moment().format('YYYY-MM-DD HH:mm:ss');
 
   let nodes = [];
   let networks = [];

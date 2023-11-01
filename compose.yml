@@ -11,8 +11,8 @@ services:
       - 8081:8081
     environment:
       PORT: 8081
+      TZ: "Asia/Tehran"
       # PATH_PREFIX: "/"
-      # TZ: "Europe/Amsterdam"
       # DOCKER_UPDATE_INTERVAL: 4000
       # ENABLE_AUTHENTICATION: "false"
       # ENABLE_AUTHENTICATION: "true"
