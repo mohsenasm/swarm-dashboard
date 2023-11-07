@@ -22,6 +22,7 @@ const legoPath = process.env.LEGO_PATH || "/lego-files";
 const httpsHostname = process.env.HTTPS_HOSTNAME;
 const dockerUpdateInterval = parseInt(process.env.DOCKER_UPDATE_INTERVAL || "1000");
 const metricsUpdateInterval = parseInt(process.env.METRICS_UPDATE_INTERVAL || "5000");
+const showTaskTimestamp = !(process.env.SHOW_TASK_TIMESTAMP === "false");
 const debugMode = process.env.DEBUG_MODE === "true";
 
 const _nodeExporterServiceNameRegex = process.env.NODE_EXPORTER_SERVICE_NAME_REGEX || "";
@@ -124,7 +125,8 @@ const stabilize = data => {
 };
 
 const parseAndRedactDockerData = data => {
-  const refreshTime = moment().format('YYYY-MM-DD HH:mm:ss');
+  const now = moment();
+  const refreshTime = now.format('YYYY-MM-DD HH:mm:ss');
 
   let nodes = [];
   let networks = [];
@@ -215,12 +217,18 @@ const parseAndRedactDockerData = data => {
 
   for (let i = 0; i < data.tasks.length; i++) {
     const baseTask = data.tasks[i];
+    const lastTimestamp = moment(baseTask["Status"]["Timestamp"]);
+    let timestateInfo = undefined;
+    if (showTaskTimestamp) {
+      timestateInfo = moment.duration(lastTimestamp - now).humanize(true);
+    } 
     let task = {
       "ID": baseTask["ID"],
       "ServiceID": baseTask["ServiceID"],
       "Status": {
         "Timestamp": baseTask["Status"]["Timestamp"],
         "State": baseTask["Status"]["State"],
+        "timestateInfo": timestateInfo,
       },
       "DesiredState": baseTask["DesiredState"],
       "Spec": {

@@ -13,6 +13,7 @@ services:
       PORT: 8081
       TZ: "Asia/Tehran"
       # PATH_PREFIX: "/"
+      # SHOW_TASK_TIMESTAMP: "false"
       # DOCKER_UPDATE_INTERVAL: 4000
       # ENABLE_AUTHENTICATION: "false"
       # ENABLE_AUTHENTICATION: "true"

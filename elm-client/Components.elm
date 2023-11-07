@@ -52,16 +52,29 @@ task service { status, desiredState, containerSpec, slot, info } =
 
                 Nothing ->
                     []
+
+        timestateInfo =
+            case status.timestateInfo of
+                Just s ->
+                    [
+                        br [] []
+                        , small [] [ text s ]
+                    ]
+
+                Nothing ->
+                    []
     in
         li [ classList classes ]
             (List.concat [
                 cpuInfo
                 , (List.concat [
                     memoryInfo
-                    , [ text (service.name ++ slotLabel slot)
-                    , br [] []
-                    , text (statusString status.state desiredState)
-                    ]
+                    , (List.concat [
+                        [ text (service.name ++ slotLabel slot)
+                        , br [] []
+                        , text (statusString status.state desiredState) ]
+                        , timestateInfo
+                    ])
                 ])
             ])
             

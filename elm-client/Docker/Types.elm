@@ -67,6 +67,7 @@ type alias Service =
 
 type alias TaskStatus =
     { timestamp : Date
+    , timestateInfo : Maybe String
     , state : String
     }
 

@@ -69,8 +69,9 @@ date =
 
 taskStatus : Json.Decoder TaskStatus
 taskStatus =
-    Json.map2 TaskStatus
+    Json.map3 TaskStatus
         (Json.at [ "Timestamp" ] date)
+        (Json.maybe (Json.at [ "timestateInfo" ] Json.string))
         (Json.at [ "State" ] Json.string)
 
 
