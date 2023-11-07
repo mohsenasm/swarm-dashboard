@@ -29,7 +29,7 @@ services:
     ports:
       - 8080:8080
     environment:
-      PORT: 8080
+      TZ: "your_timezone"
       ENABLE_AUTHENTICATION: "false"
       ENABLE_HTTPS: "false"
       NODE_EXPORTER_SERVICE_NAME_REGEX: "node-exporter"
@@ -49,7 +49,7 @@ services:
       mode: global
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw
@@ -66,7 +66,7 @@ and deploy with
 $ docker stack deploy -c compose.yml sd
 ```
 
-Note that the usage of `node-exporter` and `cadvisor` are optional, to fetch node CPU/Memory/Disk usage and containers' CPU/Memory usage respectively. If you don't need this feature, make sure to remove `NODE_EXPORTER_SERVICE_NAME_REGEX` and `CADVISOR_SERVICE_NAME_REGEX` envs.
+Note that the usage of `node-exporter` and `cadvisor` are optional, to fetch node CPU/Memory/Disk usage and containers' CPU/Memory usage respectively. If you don't specify `NODE_EXPORTER_SERVICE_NAME_REGEX` and `CADVISOR_SERVICE_NAME_REGEX` envs, the default is not using this feature, because of backward compatibility.
 
 ## Advance Usage
 
@@ -76,6 +76,7 @@ List of environment variables for more customization:
 |--------------------------------------|-------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | PORT                                 | 8080                                                                                                              | HTTP / HTTPS port.                                                                                                                                                               |
 | PATH_PREFIX                          | /prefix_path                                                                                                      | All HTTP and WebSocket connections will use this path as a prefix.                                                                                                               |
+| TZ                                   | Asia/Tehran                                                                                                  | Set the timezone for the time reported in the dashboard.                                                                                                               |
 | ENABLE_AUTHENTICATION                | true                                                                                                              | false by default.                                                                                                                                                                |
 | AUTHENTICATION_REALM                 | MyRealm                                                                                                           | Use this env if ENABLE_AUTHENTICATION is `true`.                                                                                                                                 |
 | USERNAME                             | admin                                                                                                             | Use this env if ENABLE_AUTHENTICATION is `true`.                                                                                                                                 |
@@ -87,8 +88,8 @@ List of environment variables for more customization:
 | LEGO_RENEW_COMMAND_ARGS              | --accept-tos --email=you@swarm-dashboard.example.com --domains=swarm-dashboard.example.com --dns cloudflare renew | Use this env if ENABLE_HTTPS is `true`.                                                                                                                                          |
 | CLOUDFLARE_EMAIL                     | you@example.com                                                                                                   | You can use any [DNS provider that Lego supports](https://go-acme.github.io/lego/dns/).                                                                                          |
 | CLOUDFLARE_API_KEY                   | yourprivatecloudflareapikey                                                                                       | You can use any [DNS provider that Lego supports](https://go-acme.github.io/lego/dns/).                                                                                          |
-| DOCKER_UPDATE_INTERVAL               | 1000                                                                                                              | Refresh interval in ms.                                                                                                                                                          |
-| METRICS_UPDATE_INTERVAL              | 5000                                                                                                              | Refresh interval in ms.                                                                                                                                                          |
+| DOCKER_UPDATE_INTERVAL               | 5000                                                                                                              | Refresh interval in ms.                                                                                                                                                          |
+| METRICS_UPDATE_INTERVAL              | 60000                                                                                                              | Refresh interval in ms.                                                                                                                                                          |
 | NODE_EXPORTER_SERVICE_NAME_REGEX     | node-exporter                                                                                                     | Use this env to enable `node-exporter` integration.                                                                                                                              |
 | NODE_EXPORTER_INTERESTED_MOUNT_POINT | /rootfs                                                                                                           | You may need this config if you have not specified `--path.rootfs` for `node-exporter`.                                                                                          |
 | NODE_EXPORTER_PORT                   | 9100                                                                                                              |                                                                                                                                                                                  |
