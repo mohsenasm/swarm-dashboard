@@ -665,11 +665,15 @@ if (enableHTTPS) {
     console.log(`HTTPS server listening on ${port}`); // eslint-disable-line no-console
   });
   fs.watchFile(certificatePath, { interval: 1000 }, () => {
-    console.log('Reloading TLS certificate');
-    const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
-    const certificate = fs.readFileSync(certificatePath, 'utf8');
-    const credentials = { key: privateKey, cert: certificate }
-    httpsServer.setSecureContext(credentials);
+    try {
+      console.log('Reloading TLS certificate');
+      const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
+      const certificate = fs.readFileSync(certificatePath, 'utf8');
+      const credentials = { key: privateKey, cert: certificate }
+      httpsServer.setSecureContext(credentials);
+    } catch (e) {
+      console.log(e)
+    }
   });
 } else {
   const httpServer = http.createServer();
