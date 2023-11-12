@@ -649,10 +649,11 @@ function onWSConnection(ws, req) {
 // set up the server
 
 if (enableHTTPS) {
-  const privateKey = fs.readFileSync(legoPath + '/certificates/' + httpsHostname + '.key', 'utf8');
-  const certificate = fs.readFileSync(legoPath + '/certificates/' + httpsHostname + '.crt', 'utf8');
-  const credentials = { key: privateKey, cert: certificate };
-
+  const privateKeyPath = legoPath + '/certificates/' + httpsHostname + '.key';
+  const certificatePath = legoPath + '/certificates/' + httpsHostname + '.crt';
+  const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
+  const certificate = fs.readFileSync(certificatePath, 'utf8');
+  const credentials = { key: privateKey, cert: certificate }
   const httpsServer = https.createServer(credentials);
   httpsServer.on('request', app);
   const wsServer = new ws.Server({
@@ -663,6 +664,13 @@ if (enableHTTPS) {
   httpsServer.listen(port, () => {
     console.log(`HTTPS server listening on ${port}`); // eslint-disable-line no-console
   });
+  fs.watchFile(certificatePath, { interval : 1000 }, () => {
+    console.log('Reloading TLS certificate');
+    const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
+    const certificate = fs.readFileSync(certificatePath, 'utf8');
+    const credentials = { key: privateKey, cert: certificate }
+    httpsServer.setSecureContext(credentials);
+});
 } else {
   const httpServer = http.createServer();
   httpServer.on('request', app);
