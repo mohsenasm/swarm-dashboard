@@ -11,6 +11,7 @@
       color: #fff;
       font-family: Helvetica, Arial, sans-serif;
       font-weight: lighter;
+      font-size: 80%;
     }
 
     table {
@@ -61,7 +62,7 @@
     }
 
     thead img {
-      height: 50px
+      height: 40px;
     }
 
     thead th:first-child {
@@ -164,6 +165,13 @@
       background-color: rgba(228, 0, 52, 0.6);
     }
 
+    li.task small {
+      display: none;
+    }
+    li.task:hover small {
+      display: unset;
+    }
+
     .tag.left {
       float: left;
     }
@@ -173,9 +181,9 @@
     .tag {
       border: 0.05rem solid;
       border-radius: 0.4rem;
-      padding: 0.1rem 0.2rem;
+      padding: 0.05rem 0.2rem;
       border-color: white;
-      font-size: 0.7rem;
+      font-size: 0.6rem;
     }
 
     .refresh-time {

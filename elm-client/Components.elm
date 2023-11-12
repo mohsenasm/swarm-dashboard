@@ -21,6 +21,7 @@ task service { status, desiredState, containerSpec, slot, info } =
     let
         classes =
             [ ( status.state, True )
+            , ( "task", True )
             , ( "desired-" ++ desiredState, True )
             , ( "running-old", status.state == "running" && service.containerSpec.image /= containerSpec.image )
             ]
@@ -56,10 +57,7 @@ task service { status, desiredState, containerSpec, slot, info } =
         timestateInfo =
             case status.timestateInfo of
                 Just s ->
-                    [
-                        br [] []
-                        , small [] [ text s ]
-                    ]
+                    [ small [] [ text ( "  (" ++ s ++ ")") ] ]
 
                 Nothing ->
                     []
