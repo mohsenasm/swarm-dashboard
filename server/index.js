@@ -221,7 +221,7 @@ const parseAndRedactDockerData = data => {
     let timestateInfo = undefined;
     if (showTaskTimestamp) {
       timestateInfo = moment.duration(lastTimestamp - now).humanize(true);
-    } 
+    }
     let task = {
       "ID": baseTask["ID"],
       "ServiceID": baseTask["ServiceID"],
@@ -664,13 +664,13 @@ if (enableHTTPS) {
   httpsServer.listen(port, () => {
     console.log(`HTTPS server listening on ${port}`); // eslint-disable-line no-console
   });
-  fs.watchFile(certificatePath, { interval : 1000 }, () => {
+  fs.watchFile(certificatePath, { interval: 1000 }, () => {
     console.log('Reloading TLS certificate');
     const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
     const certificate = fs.readFileSync(certificatePath, 'utf8');
     const credentials = { key: privateKey, cert: certificate }
     httpsServer.setSecureContext(credentials);
-});
+  });
 } else {
   const httpServer = http.createServer();
   httpServer.on('request', app);
