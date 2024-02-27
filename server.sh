@@ -4,7 +4,7 @@ if [ "$ENABLE_HTTPS" == "true" ]; then
         lego --path $LEGO_PATH $LEGO_NEW_COMMAND_ARGS
     else
         echo "running lego renew command"
-        no_random_sleep_option="no-random-sleep"
+        no_random_sleep_option="--no-random-sleep"
         if [ "$USE_RENEW_DELAY_ON_START" == "true" ]; then
             no_random_sleep_option=""
         fi
