@@ -28,6 +28,7 @@ services:
       # CLOUDFLARE_EMAIL: "you@example.com"
       # CLOUDFLARE_API_KEY: "yourprivatecloudflareapikey"
       # NODE_EXPORTER_SERVICE_NAME_REGEX: "node-exporter"
+      # USE_RENEW_DELAY_ON_START: "false"
     deploy:
       replicas: 1
       update_config:
