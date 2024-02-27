@@ -8,6 +8,7 @@ on:
     branches:
       - 'master'
       - 'dev_*'
+      - 'fix_*'
     tags:
       - 'v*'
 
