@@ -8,7 +8,7 @@ if [ "$ENABLE_HTTPS" == "true" ]; then
         if [ "$USE_RENEW_DELAY_ON_START" == "true" ]; then
             no_random_sleep_option=""
         fi
-        lego --path $LEGO_PATH $no_random_sleep_option $LEGO_RENEW_COMMAND_ARGS 
+        lego --path $LEGO_PATH $LEGO_RENEW_COMMAND_ARGS $no_random_sleep_option
     fi
 fi
 
