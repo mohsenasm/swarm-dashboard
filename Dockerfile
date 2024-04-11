@@ -1,5 +1,5 @@
 FROM node:20-alpine AS base
-RUN apk add --update tini lego curl && rm -r /var/cache
+RUN apk add --no-cache --update tini lego curl
 ENTRYPOINT ["/sbin/tini", "--"]
 WORKDIR /home/node/app
 
@@ -10,7 +10,7 @@ RUN yarn install --production
 
 FROM --platform=linux/amd64 node:10.16.0-buster-slim AS elm-build
 RUN npm install --unsafe-perm -g elm@latest-0.18.0 --silent
-RUN apt-get update; apt-get install -y netbase
+RUN apt-get -qq update && apt-get install -y netbase && rm -rf /var/lib/apt/lists/*
 WORKDIR /home/node/app/elm-client
 COPY ./elm-client/elm-package.json .
 RUN elm package install -y
@@ -18,7 +18,6 @@ COPY ./elm-client/ /home/node/app/elm-client/
 RUN elm make Main.elm --output=client/index.js
 
 FROM base AS release
-WORKDIR /home/node/app
 ENV LEGO_PATH=/lego-files
 
 COPY --from=dependencies /home/node/app/node_modules node_modules
