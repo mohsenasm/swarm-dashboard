@@ -138,3 +138,6 @@ Both feature requests and pull requests are welcome. If you want to build/test t
 * Mohammad-Mohsen Aseman-Manzar (current maintainer) - code, docs
 * Viktor Charypar (previous repo owner) - code, docs
 * Clementine Brown - design
+
+## Star History
+[![Stargazers over time](https://starchart.cc/mohsenasm/swarm-dashboard.svg?variant=adaptive)](https://starchart.cc/mohsenasm/swarm-dashboard)
