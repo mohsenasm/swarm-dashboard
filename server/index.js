@@ -20,8 +20,8 @@ const password = process.env.PASSWORD || "supersecret";
 const enableHTTPS = process.env.ENABLE_HTTPS === "true";
 const legoPath = process.env.LEGO_PATH || "/lego-files";
 const httpsHostname = process.env.HTTPS_HOSTNAME;
-const dockerUpdateInterval = parseInt(process.env.DOCKER_UPDATE_INTERVAL || "1000");
-const metricsUpdateInterval = parseInt(process.env.METRICS_UPDATE_INTERVAL || "5000");
+const dockerUpdateInterval = parseInt(process.env.DOCKER_UPDATE_INTERVAL || "5000");
+const metricsUpdateInterval = parseInt(process.env.METRICS_UPDATE_INTERVAL || "30000");
 const showTaskTimestamp = !(process.env.SHOW_TASK_TIMESTAMP === "false");
 const debugMode = process.env.DEBUG_MODE === "true";
 
