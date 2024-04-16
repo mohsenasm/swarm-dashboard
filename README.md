@@ -97,6 +97,7 @@ List of environment variables for more customization:
 | NODE_EXPORTER_PORT                   | 9100                                                                                                              |                                                                                                                                                                                              |
 | CADVISOR_SERVICE_NAME_REGEX          | cadvisor                                                                                                          | Use this env to enable `cadvisor` integration.                                                                                                                                               |
 | CADVISOR_PORT                        | 8080                                                                                                              |                                                                                                                                                                                              |
+| ENABLE_DATA_API                      | true                                                                                                              | Use this env to export the `/data` API that returns the swarm status as a JSON object. Note that it requires basic-auth if `ENABLE_AUTHENTICATION` is activated.                             |
 
 
 ## Security
