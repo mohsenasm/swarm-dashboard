@@ -24,6 +24,7 @@ const dockerUpdateInterval = parseInt(process.env.DOCKER_UPDATE_INTERVAL || "500
 const metricsUpdateInterval = parseInt(process.env.METRICS_UPDATE_INTERVAL || "30000");
 const showTaskTimestamp = !(process.env.SHOW_TASK_TIMESTAMP === "false");
 const debugMode = process.env.DEBUG_MODE === "true";
+const enableDataAPI = process.env.ENABLE_DATA_API === "true";
 
 const _nodeExporterServiceNameRegex = process.env.NODE_EXPORTER_SERVICE_NAME_REGEX || "";
 const useNodeExporter = _nodeExporterServiceNameRegex !== "";
@@ -532,6 +533,16 @@ const dropClosed = listeners => {
 
 // set up the application
 
+let lastRunningNodeExportes = [];
+let lastNodeMetrics = [];
+let lastRunningCadvisors = [];
+let lastRunningTasksID = [];
+let lastRunningTasksMetrics = [];
+
+let listeners = [];
+let lastData = {};
+let lastSha = '';
+
 users = {};
 users[username] = password;
 const basicAuthConfig = () => basicAuth({
@@ -551,10 +562,20 @@ if (enableAuthentication) {
     tokenStore.add(token);
     res.send(token);
   });
+  if (enableDataAPI) {
+    router.get('/data', basicAuthConfig(), (req, res) => {
+      res.send(lastData);
+    });
+  }
 } else {
   router.get('/auth_token', (req, res) => {
     res.send("no-auth-token-needed");
   });
+  if (enableDataAPI) {
+    router.get('/data', (req, res) => {
+      res.send(lastData);
+    });
+  }
 }
 if (debugMode) {
   console.log("debug mode is active");
@@ -572,17 +593,6 @@ if (debugMode) {
 app.use(pathPrefix + "/", router);
 
 // start the polling
-
-let lastRunningNodeExportes = [];
-let lastNodeMetrics = [];
-let lastRunningCadvisors = [];
-let lastRunningTasksID = [];
-let lastRunningTasksMetrics = [];
-
-let listeners = [];
-let lastData = {};
-let lastSha = '';
-
 setInterval(() => { // update docker data
   fetchDockerData()
     .then(it => {
