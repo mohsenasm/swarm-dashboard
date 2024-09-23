@@ -23,7 +23,7 @@ const httpsHostname = process.env.HTTPS_HOSTNAME;
 const dockerUpdateInterval = parseInt(process.env.DOCKER_UPDATE_INTERVAL || "5000");
 const metricsUpdateInterval = parseInt(process.env.METRICS_UPDATE_INTERVAL || "30000");
 const showTaskTimestamp = !(process.env.SHOW_TASK_TIMESTAMP === "false");
-const showNetworks = !(process.env.SHOW_NETWORKS === "false");
+const enableNetworks = !(process.env.ENABLE_NETWORKS === "false");
 const debugMode = process.env.DEBUG_MODE === "true";
 const enableDataAPI = process.env.ENABLE_DATA_API === "true";
 
@@ -165,7 +165,7 @@ const parseAndRedactDockerData = data => {
     nodes.push(node);
   }
 
-  if (showNetworks) {
+  if (enableNetworks) {
     for (let i = 0; i < data.networks.length; i++) {
       const baseNetwork = data.networks[i];
       let network = {
@@ -190,7 +190,7 @@ const parseAndRedactDockerData = data => {
         },
       },
     };
-    if (showNetworks && (baseService["Endpoint"] !== undefined)) {
+    if (enableNetworks && (baseService["Endpoint"] !== undefined)) {
       const _baseVIPs = baseService["Endpoint"]["VirtualIPs"];
       if (_baseVIPs !== undefined && Array.isArray(_baseVIPs) && _baseVIPs.length > 0) {
         let vips = []
