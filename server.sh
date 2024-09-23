@@ -1,3 +1,7 @@
+if [ "$ENABLE_NETWORK" == "false" ]; then
+    sed -i '/^<\/head>/i <style>.networks { display: none; }</style>' /home/node/app/client/index.html
+fi
+
 if [ "$ENABLE_HTTPS" == "true" ]; then
     if lego --path $LEGO_PATH list | grep -q 'No certificates found.'; then
         echo "running lego new command"
