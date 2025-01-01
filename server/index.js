@@ -4,7 +4,7 @@ import { createServer as httpsCreateServer } from 'https';
 import { createHash } from 'crypto';
 import parsePrometheusTextFormat from 'parse-prometheus-text-format';
 
-import WebSocket from 'ws';
+import WebSocket, { WebSocketServer } from 'ws';
 import express, { Router } from 'express';
 import basicAuth from 'express-basic-auth';
 import { v4 as uuidv4 } from 'uuid';
@@ -669,7 +669,7 @@ if (enableHTTPS) {
   const credentials = { key: privateKey, cert: certificate }
   const httpsServer = httpsCreateServer(credentials);
   httpsServer.on('request', app);
-  const wsServer = new WebSocket.Server({
+  const wsServer = new WebSocketServer({
     path: pathPrefix + '/stream',
     server: httpsServer,
   });
@@ -691,7 +691,7 @@ if (enableHTTPS) {
 } else {
   const httpServer = httpCreateServer();
   httpServer.on('request', app);
-  const wsServer = new WebSocket.Server({
+  const wsServer = new WebSocketServer({
     path: pathPrefix + '/stream',
     server: httpServer,
   });
