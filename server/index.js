@@ -1,4 +1,4 @@
-import { readFileSync, watchFile } from 'fs';
+import { readFileSync, watchFile } from 'node:fs';
 import { request, createServer } from 'http';
 import { createServer as _createServer } from 'https';
 import { createHash } from 'crypto';
