@@ -546,7 +546,7 @@ let listeners = [];
 let lastData = {};
 let lastSha = '';
 
-users = {};
+let users = {};
 users[username] = password;
 const basicAuthConfig = () => basicAuth({
   users: users,
