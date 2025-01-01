@@ -4,7 +4,7 @@ import { createServer as _createServer } from 'https';
 import { createHash } from 'crypto';
 import parsePrometheusTextFormat from 'parse-prometheus-text-format';
 
-import { OPEN, Server } from 'ws';
+import WebSocket from 'ws';
 import express, { Router } from 'express';
 import basicAuth from 'express-basic-auth';
 import { v4 as uuidv4 } from 'uuid';
@@ -513,7 +513,7 @@ const addTaskMetricsToData = (data, lastRunningTasksMetrics) => {
 
 const publish = (listeners, data) => {
   listeners.forEach(listener => {
-    if (listener.readyState !== OPEN) return;
+    if (listener.readyState !== WebSocket.OPEN) return;
 
     listener.send(JSON.stringify(data, null, 2));
   });
@@ -669,7 +669,7 @@ if (enableHTTPS) {
   const credentials = { key: privateKey, cert: certificate }
   const httpsServer = _createServer(credentials);
   httpsServer.on('request', app);
-  const wsServer = new Server({
+  const wsServer = new WebSocket.Server({
     path: pathPrefix + '/stream',
     server: httpsServer,
   });
@@ -691,7 +691,7 @@ if (enableHTTPS) {
 } else {
   const httpServer = createServer();
   httpServer.on('request', app);
-  const wsServer = new Server({
+  const wsServer = new WebSocket.Server({
     path: pathPrefix + '/stream',
     server: httpServer,
   });
