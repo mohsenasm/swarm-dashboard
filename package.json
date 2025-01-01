@@ -1,5 +1,6 @@
 {
-  "name": "swarm-dash",
+  "name": "swarm-dashboard",
+  "type": "module",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
