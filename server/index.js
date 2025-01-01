@@ -1,6 +1,6 @@
 import { readFileSync, watchFile } from 'node:fs';
-import { request, createServer } from 'http';
-import { createServer as _createServer } from 'https';
+import { request, createServer as httpCreateServer } from 'http';
+import { createServer as httpsCreateServer } from 'https';
 import { createHash } from 'crypto';
 import parsePrometheusTextFormat from 'parse-prometheus-text-format';
 
@@ -10,7 +10,7 @@ import basicAuth from 'express-basic-auth';
 import { v4 as uuidv4 } from 'uuid';
 import { parse } from 'url';
 import { sortBy, prop } from 'ramda';
-import moment, { duration } from 'moment';
+import moment from 'moment';
 
 const port = process.env.PORT || 8080;
 const realm = process.env.AUTHENTICATION_REALM || "KuW2i9GdLIkql";
@@ -224,7 +224,7 @@ const parseAndRedactDockerData = data => {
     const lastTimestamp = moment(baseTask["Status"]["Timestamp"]);
     let timestateInfo = undefined;
     if (showTaskTimestamp) {
-      timestateInfo = duration(lastTimestamp - now).humanize(true);
+      timestateInfo = moment.duration(lastTimestamp - now).humanize(true);
     }
     let task = {
       "ID": baseTask["ID"],
@@ -667,7 +667,7 @@ if (enableHTTPS) {
   const privateKey = readFileSync(privateKeyPath, 'utf8');
   const certificate = readFileSync(certificatePath, 'utf8');
   const credentials = { key: privateKey, cert: certificate }
-  const httpsServer = _createServer(credentials);
+  const httpsServer = httpsCreateServer(credentials);
   httpsServer.on('request', app);
   const wsServer = new WebSocket.Server({
     path: pathPrefix + '/stream',
@@ -689,7 +689,7 @@ if (enableHTTPS) {
     }
   });
 } else {
-  const httpServer = createServer();
+  const httpServer = httpCreateServer();
   httpServer.on('request', app);
   const wsServer = new WebSocket.Server({
     path: pathPrefix + '/stream',
