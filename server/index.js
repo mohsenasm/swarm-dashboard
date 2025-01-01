@@ -1,16 +1,16 @@
-var fs = require('fs');
-var http = require('http');
-var https = require('https');
-const { createHash } = require('crypto');
-const parsePrometheusTextFormat = require('parse-prometheus-text-format');
+import { readFileSync, watchFile } from 'node:fs';
+import { request, createServer as httpCreateServer } from 'http';
+import { createServer as httpsCreateServer } from 'https';
+import { createHash } from 'crypto';
+import parsePrometheusTextFormat from 'parse-prometheus-text-format';
 
-const ws = require('ws');
-const express = require('express');
-const basicAuth = require('express-basic-auth')
-const { v4: uuidv4 } = require('uuid');
-const url = require('url');
-const { sortBy, prop } = require('ramda');
-const moment = require('moment');
+import WebSocket, { WebSocketServer } from 'ws';
+import express, { Router } from 'express';
+import basicAuth from 'express-basic-auth';
+import { v4 as uuidv4 } from 'uuid';
+import { parse } from 'url';
+import { sortBy, prop } from 'ramda';
+import moment from 'moment';
 
 const port = process.env.PORT || 8080;
 const realm = process.env.AUTHENTICATION_REALM || "KuW2i9GdLIkql";
@@ -71,7 +71,7 @@ const dockerAPIRequest = path => {
   return new Promise((res, rej) => {
     let buffer = '';
 
-    const r = http.request({ ...dockerRequestBaseOptions, path }, response => {
+    const r = request({ ...dockerRequestBaseOptions, path }, response => {
       response.on('data', chunk => (buffer = buffer + chunk));
       response.on('end', () => res(buffer));
     });
@@ -101,7 +101,7 @@ const metricRequest = (url) => {
   return new Promise((res, rej) => {
     let buffer = '';
 
-    const r = http.request(url, response => {
+    const r = request(url, response => {
       response.on('data', chunk => (buffer = buffer + chunk));
       response.on('end', () => res(buffer));
     });
@@ -513,7 +513,7 @@ const addTaskMetricsToData = (data, lastRunningTasksMetrics) => {
 
 const publish = (listeners, data) => {
   listeners.forEach(listener => {
-    if (listener.readyState !== ws.OPEN) return;
+    if (listener.readyState !== WebSocket.OPEN) return;
 
     listener.send(JSON.stringify(data, null, 2));
   });
@@ -546,7 +546,7 @@ let listeners = [];
 let lastData = {};
 let lastSha = '';
 
-users = {};
+let users = {};
 users[username] = password;
 const basicAuthConfig = () => basicAuth({
   users: users,
@@ -556,7 +556,7 @@ const basicAuthConfig = () => basicAuth({
 const tokenStore = new Set();
 
 const app = express();
-const router = express.Router();
+const router = Router();
 router.use(express.static('client'));
 router.get('/_health', (req, res) => res.end());
 if (enableAuthentication) {
@@ -636,7 +636,7 @@ function onWSConnection(ws, req) {
   let params = undefined;
   let authToken = undefined;
   if (req)
-    params = url.parse(req.url, true).query; // { authToken: 'ajsdhakjsdhak' } for 'ws://localhost:1234/?authToken=ajsdhakjsdhak'
+    params = parse(req.url, true).query; // { authToken: 'ajsdhakjsdhak' } for 'ws://localhost:1234/?authToken=ajsdhakjsdhak'
   if (params)
     authToken = params.authToken;
 
@@ -664,12 +664,12 @@ function onWSConnection(ws, req) {
 if (enableHTTPS) {
   const privateKeyPath = legoPath + '/certificates/' + httpsHostname + '.key';
   const certificatePath = legoPath + '/certificates/' + httpsHostname + '.crt';
-  const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
-  const certificate = fs.readFileSync(certificatePath, 'utf8');
+  const privateKey = readFileSync(privateKeyPath, 'utf8');
+  const certificate = readFileSync(certificatePath, 'utf8');
   const credentials = { key: privateKey, cert: certificate }
-  const httpsServer = https.createServer(credentials);
+  const httpsServer = httpsCreateServer(credentials);
   httpsServer.on('request', app);
-  const wsServer = new ws.Server({
+  const wsServer = new WebSocketServer({
     path: pathPrefix + '/stream',
     server: httpsServer,
   });
@@ -677,11 +677,11 @@ if (enableHTTPS) {
   httpsServer.listen(port, () => {
     console.log(`HTTPS server listening on ${port}`); // eslint-disable-line no-console
   });
-  fs.watchFile(certificatePath, { interval: 1000 }, () => {
+  watchFile(certificatePath, { interval: 1000 }, () => {
     try {
       console.log('Reloading TLS certificate');
-      const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
-      const certificate = fs.readFileSync(certificatePath, 'utf8');
+      const privateKey = readFileSync(privateKeyPath, 'utf8');
+      const certificate = readFileSync(certificatePath, 'utf8');
       const credentials = { key: privateKey, cert: certificate }
       httpsServer.setSecureContext(credentials);
     } catch (e) {
@@ -689,9 +689,9 @@ if (enableHTTPS) {
     }
   });
 } else {
-  const httpServer = http.createServer();
+  const httpServer = httpCreateServer();
   httpServer.on('request', app);
-  const wsServer = new ws.Server({
+  const wsServer = new WebSocketServer({
     path: pathPrefix + '/stream',
     server: httpServer,
   });

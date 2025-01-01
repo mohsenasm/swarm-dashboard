@@ -19,9 +19,9 @@ RUN elm make Main.elm --output=client/index.js
 
 FROM base AS release
 ENV LEGO_PATH=/lego-files
-
 COPY --from=dependencies /home/node/app/node_modules node_modules
 COPY --from=elm-build /home/node/app/elm-client/client/ client
+COPY package.json package.json
 COPY server server
 COPY server.sh server.sh
 COPY healthcheck.sh healthcheck.sh
