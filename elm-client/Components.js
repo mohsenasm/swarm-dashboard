@@ -2,6 +2,9 @@ import React from 'react';
 import { groupBy } from './Util';
 import { connections as NetworkConnections, header as NetworkHeader, buildConnections } from './Components/Networks';
 
+import Image from "next/image";
+import DockerLogo from './client/docker_logo.svg';
+
 const statusString = (state, desiredState) => (state === desiredState ? state : `${state} → ${desiredState}`);
 
 const Task = ({ service, task }) => {
@@ -27,14 +30,12 @@ const Task = ({ service, task }) => {
 };
 
 const ServiceNode = ({ service, tasks, node }) => {
-  const _tasks = tasks[[node.id, service.id]] || [];
-  const noTaskNowhere = Object.keys(tasks).filter(([n, s]) => s === service.id).length === 0;
+  const _tasks = tasks.get([node.id, service.id]) || [];
+  const noTaskNowhere = Array.from(tasks.keys()).filter(([n, s]) => s === service.id).length === 0;
 
-  // console.log("-------");
-  // console.log("tasks", tasks)
-  // console.log("service.id", service.id);
-  // console.log("Object.keys(tasks)", Object.keys(tasks).filter(([n, s]) => s === service.id));
-  
+  console.log("tasks", tasks);
+  console.log("node.id, service.id", node.id, service.id);
+  console.log("get", tasks.get([node.id, service.id]));
   
 
   return noTaskNowhere ? (
@@ -84,7 +85,7 @@ const Node = ({ node }) => {
 const SwarmHeader = ({ nodes, networks, refreshTime }) => (
   <tr>
     <th>
-      <img src="docker_logo.svg" alt="Docker Logo" />
+      <Image src={DockerLogo} alt="Docker Logo" />
       <div className="refresh-time">{refreshTime}</div>
     </th>
     <NetworkHeader networks={networks} />

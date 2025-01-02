@@ -1,5 +1,5 @@
 import React from 'react';
-import { groupBy, iff } from '../Util';
+import { groupBy, iff, CustomMap } from '../Util';
 
 const networkColors = [
   'rgb(215, 74, 136)',
@@ -98,12 +98,12 @@ const tails = (connections, colors, names) => (
 export const buildConnections = (services, networks) => {
   const networkAttachments = services.reduce((acc, service) => {
     service.networks.forEach((networkId) => {
-      acc[[service.id, networkId]] = true;
+      acc.set([service.id, networkId], true);
     });
     return acc;
-  }, {});
+  }, new CustomMap());
 
-  const attached = (sid, nid) => networkAttachments[[sid, nid]] || false;
+  const attached = (sid, nid) => networkAttachments.get([sid, nid]) || false;
 
   const updateBounds = (current, connected, ingress, [first, last]) => [
     connected && !ingress && first < 0 ? current : first,

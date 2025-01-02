@@ -3,3 +3,4 @@ elm-stuff
 npm-debug.log
 sample-data
 .DS_Store
+.vscode

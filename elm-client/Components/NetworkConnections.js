@@ -12,16 +12,16 @@ const Connection = {
 
 const buildConnections = (services, networks) => {
   const networkAttachments = useMemo(() => {
-    const attachments = {};
+    const attachments = new Map();
     services.forEach((service) => {
       service.networks.forEach((networkId) => {
-        attachments[[service.id, networkId]] = true;
+        attachments.set([service.id, networkId], true);
       });
     });
     return attachments;
   }, [services]);
 
-  const attached = (sid, nid) => networkAttachments[[sid, nid]] || false;
+  const attached = (sid, nid) => networkAttachments.get([sid, nid]) || false;
 
   const updateBounds = (current, connected, ingress, [first, last]) => [
     connected && !ingress && first < 0 ? current : first,

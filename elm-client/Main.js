@@ -56,6 +56,7 @@ const App = () => {
       
       const result = fromJson(serverJson);
       if (result.ok) {
+
         setModel((prevModel) => ({
           ...prevModel,
           swarm: result.data,
