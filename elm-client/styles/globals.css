@@ -1,0 +1,192 @@
+/* Add any global styles you need here */
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+body {
+    background-color: #254356;
+    color: #fff;
+    font-family: Helvetica, Arial, sans-serif;
+    font-weight: lighter;
+    font-size: 80%;
+}
+
+table {
+    width: 100%;
+    border-spacing: 0;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+th {
+    padding: 5px 7px;
+    font-weight: lighter;
+}
+
+thead th {
+    border-width: 0;
+    border-bottom: 6px solid #547287;
+}
+
+thead th strong {
+    line-height: 2.0;
+    font-size: 120%;
+    font-weight: normal;
+}
+
+thead th.networks {
+    position: relative;
+    border-bottom-width: 0;
+    padding: 0 4px 0 0;
+}
+
+thead th.networks svg {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+}
+
+thead th.manager {
+    border-bottom: 6px solid rgb(0, 117, 242);
+}
+
+thead th.leader {
+    border-bottom: 6px solid rgb(0, 255, 120);
+}
+
+thead th.down {
+    border-bottom: 6px solid rgb(228, 0, 52);
+}
+
+thead img {
+    height: 40px;
+}
+
+thead th:first-child {
+    border-bottom-width: 0;
+    width: 220px;
+}
+
+tbody th {
+    background-color: #254356;
+    padding-top: 1.4em;
+    text-align: right;
+    vertical-align: top;
+}
+
+tbody tr:nth-child(2n) {
+    background-color: rgba(84, 114, 135, 0.2);
+}
+
+td {
+    padding: 3px;
+    vertical-align: top;
+}
+
+.empty-service {
+    background: radial-gradient(circle, transparent 25%, #ffffff 26%), linear-gradient(45deg, transparent 46%, #000000 47%, #000000 52%, transparent 53%), linear-gradient(135deg, transparent 46%, #000000 47%, #000000 52%, transparent 53%);
+    background-size: 1.4em 1.4em;
+    background-color: #ffffff;
+    opacity: 0.6;
+}
+
+td.networks {
+    position: relative;
+    padding: 0;
+    border-width: 0;
+    border-right: 2px solid #547287;
+    background-color: #254356;
+    text-align: right;
+    vertical-align: top;
+}
+
+td.networks div {
+    position: absolute;
+    top: 62px;
+    left: 0;
+    bottom: 0;
+}
+
+td.networks>svg {
+    position: absolute;
+    left: 0;
+}
+
+td ul {
+    margin: -3px 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+}
+
+td li {
+    text-align: center;
+    margin: 8px 3px;
+    padding: 6px 7px;
+    list-style: none;
+    border: 2px solid #fff;
+    border-radius: 3px;
+    border-color: rgb(255, 255, 255);
+}
+
+td svg {
+    display: block;
+}
+
+li.desired-ready {
+    border-color: rgb(255, 149, 0);
+}
+
+li.desired-running {
+    border-color: rgb(255, 126, 5);
+    background-color: rgba(255, 126, 5, 0.6);
+}
+
+li.running {
+    border-color: rgb(0, 255, 120);
+    background-color: rgba(0, 255, 120, 0.6);
+}
+
+li.running-old {
+    border-color: rgb(0, 117, 242);
+    background-color: rgba(0, 117, 242, 0.6);
+}
+
+li.desired-shutdown {
+    border-color: rgb(191, 191, 191);
+    background-color: rgba(191, 191, 191, 0.6);
+}
+
+li.failed {
+    border-color: rgb(228, 0, 52);
+    background-color: rgba(228, 0, 52, 0.6);
+}
+
+li.task small {
+    display: none;
+}
+
+li.task:hover small {
+    display: unset;
+}
+
+.tag.left {
+    float: left;
+}
+
+.tag.right {
+    float: right;
+}
+
+.tag {
+    border: 0.05rem solid;
+    border-radius: 0.4rem;
+    padding: 0.05rem 0.2rem;
+    border-color: white;
+    font-size: 0.6rem;
+}
+
+.refresh-time {
+    margin-top: 0.2rem;
+}
