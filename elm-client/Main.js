@@ -3,13 +3,15 @@ import dynamic from 'next/dynamic';
 import { useLocation } from 'react-router-dom';
 import { groupBy } from './Util';
 import { fromJson } from './Docker';
-import UI from './Components';
+import { SwarmGrid } from './Components';
 
 const localWebsocket = (location) => {
   if (typeof window === 'undefined') return '';
   return location.protocol === 'https:'
-    ? `wss://${location.host}${location.pathname}stream`
-    : `ws://${location.host}${location.pathname}stream`;
+    ? `wss://localhost:8080/stream`
+    : `ws://localhost:8080/stream`;
+  // ? `wss://${location.host}${location.pathname}stream`
+  // : `ws://${location.host}${location.pathname}stream`;
 };
 
 const App = () => {
@@ -28,9 +30,15 @@ const App = () => {
 
     const fetchAuthToken = async () => {
       try {
-        const response = await fetch(`${location.pathname}auth_token`);
-        const authToken = await response.text();
-        setModel((prevModel) => ({ ...prevModel, authToken }));
+        const response = await fetch(`http://localhost:8080/auth_token`);
+        // const response = await fetch(`${location.pathname}auth_token`);
+        if (response.ok) {
+          const authToken = await response.text();
+          setModel((prevModel) => ({ ...prevModel, authToken }));
+        } else {
+          const errorMessage = `Error in fetching auth_token: ${response.status} ${response.statusText}`;
+          setModel((prevModel) => ({ ...prevModel, errors: [...prevModel.errors, errorMessage] }));
+        }
       } catch (error) {
         setModel((prevModel) => ({ ...prevModel, errors: [...prevModel.errors, error.toString()] }));
       }
@@ -45,6 +53,7 @@ const App = () => {
     const ws = new WebSocket(`${model.webSocketUrl}?authToken=${model.authToken}`);
     ws.onmessage = (event) => {
       const serverJson = event.data;
+      
       const result = fromJson(serverJson);
       if (result.ok) {
         setModel((prevModel) => ({
@@ -69,7 +78,7 @@ const App = () => {
 
   return (
     <div>
-      <UI.swarmGrid services={services} nodes={nodes} networks={networks} tasks={tasks} refreshTime={refreshTime} />
+      <SwarmGrid services={services} nodes={nodes} networks={networks} tasks={tasks} refreshTime={refreshTime} />
       <ul>
         {errors.map((error, index) => (
           <li key={index}>{error}</li>

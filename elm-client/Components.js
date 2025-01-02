@@ -26,25 +26,32 @@ const Task = ({ service, task }) => {
   );
 };
 
-const ServiceNode = ({ service, taskAllocations, node }) => {
-  const tasks = taskAllocations[[node.id, service.id]] || [];
-  const noTaskNowhere = Object.keys(taskAllocations).filter(([n, s]) => s === service.id).length === 0;
+const ServiceNode = ({ service, tasks, node }) => {
+  const _tasks = tasks[[node.id, service.id]] || [];
+  const noTaskNowhere = Object.keys(tasks).filter(([n, s]) => s === service.id).length === 0;
+
+  // console.log("-------");
+  // console.log("tasks", tasks)
+  // console.log("service.id", service.id);
+  // console.log("Object.keys(tasks)", Object.keys(tasks).filter(([n, s]) => s === service.id));
+  
+  
 
   return noTaskNowhere ? (
     <td className="empty-service" />
   ) : (
     <td>
-      <ul>{tasks.map((task, idx) => <Task key={idx} service={service} task={task} />)}</ul>
+      <ul>{_tasks.map((task, idx) => <Task key={idx} service={service} task={task} />)}</ul>
     </td>
   );
 };
 
-const ServiceRow = ({ nodes, taskAllocations, networkConnections, service }) => (
+const ServiceRow = ({ nodes, tasks, networkConnections, service }) => (
   <tr>
     <th>{service.name}</th>
     <NetworkConnections service={service} networkConnections={networkConnections} />
     {nodes.map((node, idx) => (
-      <ServiceNode key={idx} service={service} taskAllocations={taskAllocations} node={node} />
+      <ServiceNode key={idx} service={service} tasks={tasks} node={node} />
     ))}
   </tr>
 );
@@ -87,9 +94,9 @@ const SwarmHeader = ({ nodes, networks, refreshTime }) => (
   </tr>
 );
 
-const SwarmGrid = ({ services, nodes, networks, taskAllocations, refreshTime }) => {
+export const SwarmGrid = ({ services, nodes, networks, tasks, refreshTime }) => {
   const networkConnections = buildConnections(services, networks);
-
+  
   return (
     <table>
       <thead>
@@ -100,7 +107,7 @@ const SwarmGrid = ({ services, nodes, networks, taskAllocations, refreshTime }) 
           <ServiceRow
             key={idx}
             nodes={nodes}
-            taskAllocations={taskAllocations}
+            tasks={tasks}
             networkConnections={networkConnections}
             service={service}
           />
@@ -109,5 +116,3 @@ const SwarmGrid = ({ services, nodes, networks, taskAllocations, refreshTime }) 
     </table>
   );
 };
-
-export default SwarmGrid;

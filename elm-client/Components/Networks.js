@@ -134,13 +134,13 @@ export const buildConnections = (services, networks) => {
   return { networks, connections };
 };
 
-export const header = (networks) => (
+export const header = ({ networks }) => (
   <th className="networks" style={{ width: `${totalWidth(networks)}px` }}>
     {head(networks)}
   </th>
 );
 
-export const connections = (service, networkConnections) => {
+export const connections = ({ service, networkConnections }) => {
   const connections = networkConnections.networks.map((network) => networkConnections.connections[[service.id, network.id]] || 'None');
   const colors = networkConnections.networks.map((network, i) => (network.ingress ? 'white' : networkColor(i)));
   const names = networkConnections.networks.map((network) => network.name);
