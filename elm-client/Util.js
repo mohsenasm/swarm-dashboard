@@ -28,7 +28,7 @@ export const indexedFoldl = (indexedReducer, init, list) => {
   }, init);
 };
 
-class CustomMap {
+export class CustomMap {
   constructor() {
     this.map = new Map();
   }
