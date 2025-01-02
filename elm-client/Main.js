@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, useLocation } from 'react-router-dom';
+import dynamic from 'next/dynamic';
+import { useLocation } from 'react-router-dom';
 import { groupBy } from './Util';
 import { fromJson } from './Docker';
 import UI from './Components';
 
 const localWebsocket = (location) => {
+  if (typeof window === 'undefined') return '';
   return location.protocol === 'https:'
-    ? `wss://localhost:8080/stream`
-    : `ws://localhost:8080/stream`;
+    ? `wss://${location.host}${location.pathname}stream`
+    : `ws://${location.host}${location.pathname}stream`;
 };
-// const localWebsocket = (location) => {
-//   return location.protocol === 'https:'
-//     ? `wss://${location.host}${location.pathname}stream`
-//     : `ws://${location.host}${location.pathname}stream`;
-// };
 
 const App = () => {
   const location = useLocation();
@@ -27,6 +24,8 @@ const App = () => {
   });
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const fetchAuthToken = async () => {
       try {
         const response = await fetch(`${location.pathname}auth_token`);
@@ -41,7 +40,7 @@ const App = () => {
   }, [location.pathname]);
 
   useEffect(() => {
-    if (!model.authToken) return;
+    if (!model.authToken || typeof window === 'undefined') return;
 
     const ws = new WebSocket(`${model.webSocketUrl}?authToken=${model.authToken}`);
     ws.onmessage = (event) => {
@@ -80,10 +79,12 @@ const App = () => {
   );
 };
 
+const DynamicBrowserRouter = dynamic(() => import('react-router-dom').then((mod) => mod.BrowserRouter), { ssr: false });
+
 const Main = () => (
-  <Router>
+  <DynamicBrowserRouter>
     <App />
-  </Router>
+  </DynamicBrowserRouter>
 );
 
 export default Main;
