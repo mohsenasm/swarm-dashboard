@@ -15,8 +15,12 @@ import moment from 'moment';
 const port = process.env.PORT || 8080;
 const realm = process.env.AUTHENTICATION_REALM || "KuW2i9GdLIkql";
 const enableAuthentication = process.env.ENABLE_AUTHENTICATION === "true"
-const username = process.env.USERNAME || "admin";
-const password = process.env.PASSWORD || "supersecret";
+const username = process.env.USERNAME_FILE
+  ? readFileSync(process.env.USERNAME_FILE, 'utf-8')
+  : process.env.USERNAME || "admin";
+const password = process.env.PASSWORD_FILE
+  ? readFileSync(process.env.PASSWORD_FILE, 'utf-8')
+  : process.env.PASSWORD || "supersecret";
 const enableHTTPS = process.env.ENABLE_HTTPS === "true";
 const legoPath = process.env.LEGO_PATH || "/lego-files";
 const httpsHostname = process.env.HTTPS_HOSTNAME;
