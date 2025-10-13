@@ -15,6 +15,9 @@ services:
       CADVISOR_SERVICE_NAME_REGEX: "cadvisor"
       # DOCKER_SOCKET: "/var/run/docker.sock"
       DOCKER_SOCKET: "tcp://dockerproxy:2375"
+      # PATH_PREFIX: "/a-path-prefix"
+      # SHOW_TASK_TIMESTAMP: "false"
+      # ENABLE_NETWORKS: "false"
     networks:
       - monitoring_net
   
