@@ -1,6 +1,7 @@
 module Docker.Json exposing (parse)
 
-import Date exposing (Date)
+import Time exposing (Posix)
+import Iso8601
 import Json.Decode as Json
 import Docker.Types exposing (..)
 
@@ -58,19 +59,15 @@ service =
         ((Json.maybe (Json.at [ "Endpoint", "VirtualIPs" ] (Json.list (Json.at [ "NetworkID" ] Json.string)))) |> Json.andThen filterEmptyNetworks)
 
 
-date : Json.Decoder Date
-date =
-    let
-        safeFromString =
-            Date.fromString >> (Result.withDefault (Date.fromTime 0.0))
-    in
-        Json.string |> Json.map safeFromString
+posix : Json.Decoder Posix
+posix =
+    Iso8601.decoder
 
 
 taskStatus : Json.Decoder TaskStatus
 taskStatus =
     Json.map3 TaskStatus
-        (Json.at [ "Timestamp" ] date)
+        (Json.at [ "Timestamp" ] posix)
         (Json.maybe (Json.at [ "timestateInfo" ] Json.string))
         (Json.at [ "State" ] Json.string)
 
@@ -106,5 +103,5 @@ dockerApi =
 
 
 parse : String -> Result String DockerApiData
-parse =
-    Json.decodeString dockerApi
+parse input =
+    Json.decodeString dockerApi input |> Result.mapError Json.errorToString

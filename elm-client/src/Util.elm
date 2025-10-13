@@ -11,7 +11,7 @@ complement fn =
 
 isJust : Maybe a -> Bool
 isJust x =
-    Maybe.withDefault False (Maybe.map (\x -> True) x)
+    Maybe.withDefault False (Maybe.map (\_ -> True) x)
 
 
 iff : Bool -> a -> a -> a

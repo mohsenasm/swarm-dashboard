@@ -1,7 +1,7 @@
 module Docker.Types exposing (..)
 
 import Dict exposing (Dict)
-import Date exposing (Date)
+import Time exposing (Posix)
 
 
 type alias NodeId =
@@ -66,7 +66,7 @@ type alias Service =
 
 
 type alias TaskStatus =
-    { timestamp : Date
+    { timestamp : Posix
     , timestateInfo : Maybe String
     , state : String
     }

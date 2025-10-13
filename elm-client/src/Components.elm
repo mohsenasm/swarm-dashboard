@@ -26,10 +26,10 @@ task service { status, desiredState, containerSpec, slot, info } =
             , ( "running-old", status.state == "running" && service.containerSpec.image /= containerSpec.image )
             ]
 
-        slotLabel slot =
-            case slot of
+        slotLabel slotVal =
+            case slotVal of
                 Just s ->
-                    "." ++ toString s
+                    "." ++ String.fromInt s
 
                 Nothing ->
                     ""
@@ -79,10 +79,10 @@ task service { status, desiredState, containerSpec, slot, info } =
 
 
 serviceNode : Service -> TaskIndex -> Node -> Html msg
-serviceNode service taskAllocations node =
+serviceNode service taskAllocations nodeItem =
     let
         tasks =
-            Maybe.withDefault [] (Dict.get ( node.id, service.id ) taskAllocations)
+            Maybe.withDefault [] (Dict.get ( nodeItem.id, service.id ) taskAllocations)
         forThisService (n, s) = 
             s == service.id
         tasksOfThisService = List.filter forThisService (Dict.keys taskAllocations)
@@ -102,22 +102,22 @@ serviceRow nodes taskAllocations networkConnections service =
 
 
 node : Node -> Html msg
-node node =
+node nodeItem =
     let
         leader =
-            Maybe.withDefault False (Maybe.map .leader node.managerStatus)
+            Maybe.withDefault False (Maybe.map .leader nodeItem.managerStatus)
 
         classes =
-            [ ( "down", node.status.state == "down" )
-            , ( "manager", node.role == "manager" )
+            [ ( "down", nodeItem.status.state == "down" )
+            , ( "manager", nodeItem.role == "manager" )
             , ( "leader", leader )
             ]
 
         nodeRole =
-            String.join " " [ node.role, iff leader "(leader)" "" ]
+            String.join " " [ nodeItem.role, iff leader "(leader)" "" ]
 
         info =
-            case node.info of
+            case nodeItem.info of
                 Just s ->
                     [
                         br [] []
@@ -130,11 +130,11 @@ node node =
         th [ classList classes ]
             (List.concat [
                 [ 
-                    strong [] [ text node.name ]
+                    strong [] [ text nodeItem.name ]
                     , br [] []
                     , text nodeRole
                     , br [] []
-                    , text node.status.address
+                    , text nodeItem.status.address
                 ]
                 , info
             ])

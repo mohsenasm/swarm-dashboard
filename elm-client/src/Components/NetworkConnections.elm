@@ -32,16 +32,16 @@ type alias NetworkAttachments =
     Dict ( ServiceId, NetworkId ) Bool
 
 
-attachments : List Service -> NetworkAttachments
-attachments services =
+buildAttachments : List Service -> NetworkAttachments
+buildAttachments services =
     let
         networkReducer : ServiceId -> Network -> NetworkAttachments -> NetworkAttachments
-        networkReducer serviceId network attachments =
-            Dict.update ( serviceId, network.id ) (always (Just True)) attachments
+        networkReducer serviceId network currentAttachments =
+            Dict.update ( serviceId, network.id ) (always (Just True)) currentAttachments
 
         serviceReducer : Service -> NetworkAttachments -> NetworkAttachments
-        serviceReducer service attachments =
-            service.networks |> List.foldl (networkReducer service.id) attachments
+        serviceReducer service currentAttachments =
+            service.networks |> List.foldl (networkReducer service.id) currentAttachments
     in
         List.foldl serviceReducer Dict.empty services
 
@@ -90,7 +90,7 @@ build : List Service -> List Network -> NetworkConnections
 build services networks =
     let
         networkAttachments =
-            attachments services
+            buildAttachments services
 
         attached sid nid =
             Maybe.withDefault False (Dict.get ( sid, nid ) networkAttachments)
@@ -111,15 +111,15 @@ build services networks =
                     ( -1, -1 )
 
         updateConnections : Network -> NetworkConnectionTypes -> NetworkConnectionTypes
-        updateConnections n connections =
+        updateConnections n connMap =
             let
                 bounds =
                     (firstAndLastConnection n)
             in
                 services
                     |> Util.indexedFoldl
-                        (\nidx s connections -> update s.id n.id (connectionType s n (attached s.id n.id) nidx bounds) connections)
-                        connections
+                        (\nidx s connMapAcc -> update s.id n.id (connectionType s n (attached s.id n.id) nidx bounds) connMapAcc)
+                        connMap
     in
         NetworkConnections
             networks

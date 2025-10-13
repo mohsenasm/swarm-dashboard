@@ -1,7 +1,7 @@
 module Docker exposing (..)
 
 import Dict exposing (Dict)
-import Date exposing (Date)
+import Time exposing (Posix, posixToMillis)
 import Docker.Types exposing (..)
 import Docker.Json exposing (parse)
 import Util exposing (..)
@@ -24,18 +24,18 @@ withoutFailedTaskHistory =
             ( serviceId, (Maybe.withDefault 0 slot) )
 
         latestRunning =
-            List.sortBy (.status >> .timestamp >> Date.toTime)
+            List.sortBy (.status >> .timestamp >> posixToMillis)
                 >> List.filter (\t -> t.status.state /= "failed")
                 >> List.reverse
                 >> List.head
 
         latest =
-            List.sortBy (.status >> .timestamp >> Date.toTime)
+            List.sortBy (.status >> .timestamp >> posixToMillis)
                 >> List.reverse
                 >> (List.take 1)
 
         failedOlderThan running task =
-            isFailed task.status && Date.toTime task.status.timestamp < Date.toTime running.status.timestamp
+            isFailed task.status && posixToMillis task.status.timestamp < posixToMillis running.status.timestamp
 
         filterPreviouslyFailed tasks =
             case latestRunning tasks of
@@ -60,12 +60,12 @@ process { nodes, networks, services, tasks, refreshTime } =
             indexBy (.id) networks
 
         resolveNetworks : List NetworkId -> List Network
-        resolveNetworks networks =
-            networks |> List.map (\id -> Maybe.withDefault emptyNetwork (Dict.get id networkIndex))
+        resolveNetworks netIds =
+            netIds |> List.map (\id -> Maybe.withDefault emptyNetwork (Dict.get id networkIndex))
 
         linkNetworks : List RawService -> List Service
         linkNetworks =
-            List.map (\service -> { service | networks = resolveNetworks service.networks })
+            List.map (\raw -> { id = raw.id, name = raw.name, containerSpec = raw.containerSpec, networks = resolveNetworks raw.networks })
 
         allNetworks : List RawService -> List Network
         allNetworks =
