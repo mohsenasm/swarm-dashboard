@@ -1,6 +1,6 @@
 import { readFileSync, watchFile } from 'node:fs';
-import { request, createServer as httpCreateServer } from 'http';
-import { createServer as httpsCreateServer } from 'https';
+import { request, createServer as httpCreateServer } from 'node:http';
+import { createServer as httpsCreateServer } from 'node:https';
 import { createHash } from 'crypto';
 import parsePrometheusTextFormat from 'parse-prometheus-text-format';
 
@@ -8,7 +8,7 @@ import WebSocket, { WebSocketServer } from 'ws';
 import express, { Router } from 'express';
 import basicAuth from 'express-basic-auth';
 import { v4 as uuidv4 } from 'uuid';
-import { parse } from 'url';
+import { URL } from 'node:url';
 import { sortBy, prop } from 'ramda';
 import moment from 'moment';
 
@@ -647,12 +647,11 @@ setInterval(() => { // update node data
 }, metricsUpdateInterval); // refreshs each 5s
 
 function onWSConnection(ws, req) {
-  let params = undefined;
   let authToken = undefined;
-  if (req)
-    params = parse(req.url, true).query; // { authToken: 'ajsdhakjsdhak' } for 'ws://localhost:1234/?authToken=ajsdhakjsdhak'
-  if (params)
-    authToken = params.authToken;
+  if (req) {
+    const urlObj = new URL(req.url, `http://${req.headers.host}`);
+    authToken = urlObj.searchParams.get('authToken') || undefined;
+  }
 
   if (!enableAuthentication || tokenStore.has(authToken)) {
     if (enableAuthentication) {

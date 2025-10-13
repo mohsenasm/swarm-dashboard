@@ -4,17 +4,21 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
   "dependencies": {
-    "express": "5.0.1",
+    "express": "5.1.0",
     "express-basic-auth": "^1.2.1",
     "moment": "^2.29.4",
     "parse-prometheus-text-format": "^1.1.1",
-    "ramda": "0.30.1",
-    "uuid": "11.0.3",
-    "ws": "^8.17.1"
+    "ramda": "0.32.0",
+    "uuid": "13.0.0",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "babel-eslint-parser": "7.13.10",
-    "eslint": "9.17.0"
-  }
+    "eslint": "9.37.0"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
