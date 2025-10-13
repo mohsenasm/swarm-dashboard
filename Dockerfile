@@ -9,14 +9,13 @@ COPY package.json yarn.lock ./
 RUN yarn install --production
 
 FROM --platform=linux/amd64 node:24-alpine AS elm-build
-RUN npm install --unsafe-perm -g elm@latest-0.19.1 --silent
-# RUN apt-get -qq update && apt-get install -y netbase && rm -rf /var/lib/apt/lists/*
+RUN npm install -g elm@latest-0.19.1 uglify-js --silent
 WORKDIR /home/node/app/elm-client
-# Elm 0.19.1 project layout
 COPY ./elm-client/elm.json ./elm.json
 COPY ./elm-client/src ./src
 COPY ./elm-client/client ./client
-RUN elm make src/Main.elm --output=client/index.js
+# RUN elm make src/Main.elm --output=client/index.js
+RUN elm make src/Main.elm --optimize --output=client/index.js && uglifyjs client/index.js --compress "pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe" | uglifyjs --mangle --output client/index.min.js
 # FROM --platform=linux/amd64 mohsenasm/swarm-dashboard:v2.6 AS elm-copy
 
 FROM base AS release
