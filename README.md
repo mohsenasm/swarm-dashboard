@@ -14,7 +14,7 @@ It also shows the CPU/Memory/Disk usage of your swarm node and containers.
 
 ## Usage
 
-The dashboard needs to be deployed on one of the swarm managers.
+The dashboard can be deployed on one of the swarm managers.
 You can configure it with the following Docker compose file:
 
 ```yml
@@ -68,6 +68,8 @@ $ docker stack deploy -c compose.yml sd
 
 Note that the usage of `node-exporter` and `cadvisor` are optional, to fetch node CPU/Memory/Disk usage and containers' CPU/Memory usage respectively. If you don't specify `NODE_EXPORTER_SERVICE_NAME_REGEX` and `CADVISOR_SERVICE_NAME_REGEX` envs, the default is not using this feature, because of backward compatibility.
 
+If you prefer to deploy the dashboard on the worker nodes instead of the manager nodes (without the constraint `node.role == manager`), you can use the `DOCKER_SOCKET` configuration. Please check the following sections for more details.
+
 ## Advance Usage
 
 List of environment variables for more customization:
@@ -105,7 +107,7 @@ List of environment variables for more customization:
 
 ## Security
 
-+ We redact docker event data before sending them to the client. The previous version was sending the whole docker event data, including environment variables (someone might have stored some passwords in them, by mistake!). So, please consider using the newer version.
++ We redact Docker event data before sending it to the client. The previous version sent the complete Docker event data, including environment variables (which might unintentionally contain passwords). Therefore, please consider using version v2.x or later.
 
 + Using the `ENABLE_AUTHENTICATION` environment variable, there is an option to use `Basic Auth`. The WebSocket server will close the connection if it does not receive a valid authentication token. See the example in the above section for more info.
 
