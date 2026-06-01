@@ -166,22 +166,52 @@ swarmGrid services nodes networks taskAllocations nonSwarmContainers refreshTime
 nonSwarmContainerRow : List Node -> List Container -> Html msg
 nonSwarmContainerRow nodes containers =
     let
-        nodeMap =
-            indexBy (.id) nodes
-
         containersByNode =
             groupBy (.nodeId) containers
 
         containerCell : List Container -> Html msg
         containerCell conts =
             td []
-                [ ul [] (List.map (taskF conts) (List.concat [[]])) ]
+                [ ul [] (List.map nonSwarmContainerItem conts) ]
 
-        taskF : List Container -> () -> Html msg
-        taskF conts _ =
-            li [ class "non-swarm-container" ]
-                [ text "Non-Swarm Container" ]
+        nonSwarmContainerItem : Container -> Html msg
+        nonSwarmContainerItem { name, status, containerSpec, info } =
+            let
+                cpuInfo =
+                    case info.cpu of
+                        Just s ->
+                            [ div [ class "tag left" ] [ text s ] ]
+                        Nothing ->
+                            []
+
+                memoryInfo =
+                    case info.memory of
+                        Just s ->
+                            [ div [ class "tag right" ] [ text s ] ]
+                        Nothing ->
+                            []
+
+                timestateInfo =
+                    case status.timestateInfo of
+                        Just s ->
+                            [ small [] [ text ( "  (" ++ s ++ ")") ] ]
+                        Nothing ->
+                            []
+            in
+                li [ class "non-swarm-container", classList [ ( status.state, True ), ( "desired-running", True ) ] ]
+                    (List.concat
+                        [ cpuInfo
+                        , memoryInfo
+                        , [ text name
+                          , br [] []
+                          , text status.state
+                          ]
+                        , timestateInfo
+                        ])
     in
-        tr []
-            (th [] [ text "Non-Swarm Containers" ] 
-                :: (List.map containerCell (List.map (\n -> Maybe.withDefault [] (Dict.get n.id containersByNode)) nodes)))
+        if List.isEmpty containers then
+            text ""
+        else
+            tr []
+                (th [] [ text "Non-Swarm Containers" ] 
+                    :: (List.map (\n -> containerCell (Maybe.withDefault [] (Dict.get n.id containersByNode))) nodes))
