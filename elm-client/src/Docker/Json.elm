@@ -1,6 +1,7 @@
 module Docker.Json exposing (parse)
 
-import Date exposing (Date)
+import Time exposing (Posix)
+import Iso8601
 import Json.Decode as Json
 import Docker.Types exposing (..)
 
@@ -58,19 +59,15 @@ service =
         ((Json.maybe (Json.at [ "Endpoint", "VirtualIPs" ] (Json.list (Json.at [ "NetworkID" ] Json.string)))) |> Json.andThen filterEmptyNetworks)
 
 
-date : Json.Decoder Date
-date =
-    let
-        safeFromString =
-            Date.fromString >> (Result.withDefault (Date.fromTime 0.0))
-    in
-        Json.string |> Json.map safeFromString
+posix : Json.Decoder Posix
+posix =
+    Iso8601.decoder
 
 
 taskStatus : Json.Decoder TaskStatus
 taskStatus =
     Json.map3 TaskStatus
-        (Json.at [ "Timestamp" ] date)
+        (Json.at [ "Timestamp" ] posix)
         (Json.maybe (Json.at [ "timestateInfo" ] Json.string))
         (Json.at [ "State" ] Json.string)
 
@@ -95,16 +92,35 @@ task =
         (Json.at [ "info" ] taskInfo)
 
 
+containerInfo : Json.Decoder TaskInfo
+containerInfo =
+    Json.map2 TaskInfo
+        (Json.maybe (Json.field "info" (Json.maybe (Json.field "cpu" Json.string))) |> Json.map (Maybe.andThen identity))
+        (Json.maybe (Json.field "info" (Json.maybe (Json.field "memory" Json.string))) |> Json.map (Maybe.andThen identity))
+
+
+container : Json.Decoder Container
+container =
+    Json.map6 Container
+        (Json.at [ "ID" ] Json.string)
+        (Json.at [ "Name" ] Json.string)
+        (Json.at [ "NodeID" ] Json.string)
+        (Json.at [ "Status" ] taskStatus)
+        (Json.at [ "Spec", "ContainerSpec" ] containerSpec)
+        containerInfo
+
+
 dockerApi : Json.Decoder DockerApiData
 dockerApi =
-    Json.map5 DockerApiData
+    Json.map6 DockerApiData
         (Json.at [ "nodes" ] (Json.list node))
         (Json.at [ "networks" ] (Json.list network))
         (Json.at [ "services" ] (Json.list service))
         (Json.at [ "tasks" ] (Json.list task))
+        (Json.at [ "nonSwarmContainers" ] (Json.list container))
         (Json.at [ "refreshTime" ] Json.string)
 
 
 parse : String -> Result String DockerApiData
-parse =
-    Json.decodeString dockerApi
+parse input =
+    Json.decodeString dockerApi input |> Result.mapError Json.errorToString

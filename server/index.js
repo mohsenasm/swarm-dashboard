@@ -1,6 +1,6 @@
 import { readFileSync, watchFile } from 'node:fs';
-import { request, createServer as httpCreateServer } from 'http';
-import { createServer as httpsCreateServer } from 'https';
+import { request, createServer as httpCreateServer } from 'node:http';
+import { createServer as httpsCreateServer } from 'node:https';
 import { createHash } from 'crypto';
 import parsePrometheusTextFormat from 'parse-prometheus-text-format';
 
@@ -8,7 +8,7 @@ import WebSocket, { WebSocketServer } from 'ws';
 import express, { Router } from 'express';
 import basicAuth from 'express-basic-auth';
 import { v4 as uuidv4 } from 'uuid';
-import { parse } from 'url';
+import { URL } from 'node:url';
 import { sortBy, prop } from 'ramda';
 import moment from 'moment';
 
@@ -42,6 +42,7 @@ const _cadvisorServiceNameRegex = process.env.CADVISOR_SERVICE_NAME_REGEX || "";
 const useCadvisor = _cadvisorServiceNameRegex !== "";
 const cadvisorServiceNameRegex = new RegExp(_cadvisorServiceNameRegex);
 const cadvisorPort = process.env.CADVISOR_PORT || "8080";
+const showNonSwarmContainers = process.env.SHOW_NON_SWARM_CONTAINERS === "true";
 
 let pathPrefix = process.env.PATH_PREFIX || "/";
 if (pathPrefix.endsWith("/")) {
@@ -76,10 +77,10 @@ if (dockerSocket.startsWith("tcp://")) {
     dockerRequestBaseOptions.host = match[1];
     dockerRequestBaseOptions.port = parseInt(match[2]);
   } else {
-      console.log("error is parsing DOCKER_SOCKET");
+    console.log("error is parsing DOCKER_SOCKET");
   }
 } else {
-    dockerRequestBaseOptions.socketPath = dockerSocket;
+  dockerRequestBaseOptions.socketPath = dockerSocket;
 }
 const dockerAPIRequest = path => {
   return new Promise((res, rej) => {
@@ -126,10 +127,13 @@ const metricRequest = (url) => {
   });
 };
 
-const fetchMetrics = (addresses) => {
+const fetchMetrics = (nodes) => {
   let promises = [];
-  for (let i = 0; i < addresses.length; i++) {
-    promises.push(metricRequest(addresses[i]).then(parsePrometheusTextFormat));
+  for (let i = 0; i < nodes.length; i++) {
+    let node = nodes[i];
+    promises.push(metricRequest(node.url)
+      .then(parsePrometheusTextFormat)
+      .then(metrics => ({ nodeID: node.nodeID, metrics })));
   }
   return Promise.all(promises);
 }
@@ -291,7 +295,7 @@ const parseAndRedactDockerData = data => {
             ipList.push(ip.split("/")[0]);
           }
         }
-        runningCadvisors.push({ address: ipList[0] });
+        runningCadvisors.push({ nodeID: baseTask["NodeID"], address: ipList[0] });
       }
     }
     if (baseTask["Status"]["State"] === "running") {
@@ -351,14 +355,16 @@ const currentTime = () => Math.floor(Date.now() / 1000);
 const fetchNodeMetrics = ({ lastData, lastRunningNodeExportes, lastNodeMetrics }, callback) => {
   let nodeMetrics = [];
   if (lastRunningNodeExportes.length > 0) { // should fetch metrics
-    fetchMetrics(lastRunningNodeExportes.map(({ address }) => `http://${address}:${nodeExporterPort}/metrics`))
+    fetchMetrics(lastRunningNodeExportes.map(({ address }) => {
+      return { url: `http://${address}:${nodeExporterPort}/metrics` }
+    }))
       .then(metricsList => {
         for (let i = 0; i < lastData.nodes.length; i++) {
           let node = lastData.nodes[i];
           for (let j = 0; j < lastRunningNodeExportes.length; j++) {
             const nodeExporterTask = lastRunningNodeExportes[j];
             if (node["ID"] === nodeExporterTask.nodeID) {
-              const metricsOfThisNode = metricsList[j];
+              const metricsOfThisNode = metricsList[j].metrics;
               const metricToSave = { nodeID: node["ID"], fetchTime: currentTime() };
 
               // last metrics
@@ -424,11 +430,13 @@ const fetchNodeMetrics = ({ lastData, lastRunningNodeExportes, lastNodeMetrics }
 const fetchTasksMetrics = ({ lastRunningCadvisors, lastRunningTasksMetrics, lastRunningTasksID }, callback) => {
   let runningTasksMetrics = [];
   if (lastRunningCadvisors.length > 0) { // should fetch metrics
-    fetchMetrics(lastRunningCadvisors.map(({ address }) => `http://${address}:${cadvisorPort}/metrics`))
+    fetchMetrics(lastRunningCadvisors.map(({ address }) => {
+      return { url: `http://${address}:${cadvisorPort}/metrics` }
+    }))
       .then(metricsList => {
         let allMetrics = [];
         for (let i = 0; i < metricsList.length; i++) {
-          allMetrics = allMetrics.concat(metricsList[i]);
+          allMetrics = allMetrics.concat(metricsList[i].metrics);
         }
         for (let i = 0; i < lastRunningTasksID.length; i++) {
           let taskID = lastRunningTasksID[i];
@@ -479,6 +487,117 @@ const fetchTasksMetrics = ({ lastRunningCadvisors, lastRunningTasksMetrics, last
   }
 }
 
+function hasSwarmLabel(labels) {
+  // Return false if labels object is null or undefined
+  if (!labels) return false;
+
+  for (const [key, value] of Object.entries(labels)) {
+    // Check if the label key contains the Swarm identifier
+    if (key.includes("com_docker_swarm")) {
+      // Return true if the value exists and is NOT just empty spaces
+      if (value && value.trim() !== "") {
+        return true;
+      }
+    }
+  }
+
+  // Return false if no Swarm labels were found, or if they were all empty
+  return false;
+}
+
+const fetchNonSwarmContainersMetrics = ({ lastRunningCadvisors, lastRunningNonSwarmContainersMetricsPerNodeID }, callback) => {
+  let runningNonSwarmContainersMetricsPerNodeID = {};
+  if (lastRunningCadvisors.length > 0) { // should fetch metrics
+    fetchMetrics(lastRunningCadvisors.map(({ nodeID, address }) => {
+      return { nodeID, url: `http://${address}:${cadvisorPort}/metrics` }
+    }))
+      .then(metricsList => {
+        for (let i = 0; i < metricsList.length; i++) {
+          const nodeID = metricsList[i].nodeID;
+          const metrics = metricsList[i].metrics;
+
+          let runningNonSwarmContainersMetrics = [];
+          runningNonSwarmContainersMetricsPerNodeID[nodeID] = runningNonSwarmContainersMetrics;
+          let lastRunningNonSwarmContainersMetrics = [];
+          if (lastRunningNonSwarmContainersMetricsPerNodeID[nodeID] !== undefined) {
+            lastRunningNonSwarmContainersMetrics = lastRunningNonSwarmContainersMetricsPerNodeID[nodeID];
+          }
+
+          const containerMap = new Map();
+          for (const family of metrics) {
+            // Look for container_start_time_seconds metric family
+            if (family.name === 'container_start_time_seconds') {
+              // Iterate through individual metrics in this family
+              for (const metric of family.metrics) {
+                const labels = metric.labels;
+                // Skip if no labels
+                if (!labels) continue;
+                // Skip the root cAdvisor tracking metric and empty names
+                if (!labels.name || labels.name === '/') continue;
+                // Skip swarm tasks
+                if (hasSwarmLabel(labels)) continue;
+                // Extract the metric value (the timestamp)
+                const startTimeSeconds = parseFloat(metric.value);
+                if (!isNaN(startTimeSeconds)) {
+                  const startDate = new Date(startTimeSeconds * 1000);
+                  containerMap.set(labels.name, {
+                    name: labels.name,
+                    startedAt: startDate
+                  });
+                }
+              }
+            }
+          }
+
+          containerMap.forEach(container => {
+            const metricToSave = { name: container.name, startedAt: container.startedAt, fetchTime: currentTime() };
+
+            // last metrics
+            let lastMetricsOfThisTask = {};
+            let timeDiffFromLastMetrics = 0;
+            for (let k = 0; k < lastRunningNonSwarmContainersMetrics.length; k++) {
+              if (lastRunningNonSwarmContainersMetrics[k].name === metricToSave.name) {
+                lastMetricsOfThisTask = lastRunningNonSwarmContainersMetrics[k];
+                timeDiffFromLastMetrics = metricToSave.fetchTime - lastMetricsOfThisTask.fetchTime
+                break;
+              }
+            }
+
+            // cpu
+            metricToSave.cpuSecondsTotal = sum(findAllMetricValue(metrics, "container_cpu_usage_seconds_total", [{ name: "name", value: metricToSave.name }]));
+            if (
+              (lastMetricsOfThisTask.cpuSecondsTotal !== undefined) &&
+              (timeDiffFromLastMetrics > 0)
+            ) {
+              metricToSave.cpuPercent = Math.round((metricToSave.cpuSecondsTotal - lastMetricsOfThisTask.cpuSecondsTotal) * 100 / timeDiffFromLastMetrics);
+            }
+
+            // memory
+            metricToSave.memoryBytes = findMetricValue(metrics, "container_memory_rss", [{ name: "name", value: metricToSave.name }]);
+            // let memoryUsage = findMetricValue(metrics, "container_memory_usage_bytes", [{ name: "name", value: metricToSave.name }]);
+            // let memoryCache = findMetricValue(metrics, "container_memory_cache", [{ name: "name", value: metricToSave.name }]);
+            // console.log(memoryUsage, memoryCache);
+            // if (
+            //   (memoryUsage !== undefined) &&
+            //   (memoryCache !== undefined)
+            // ) {
+            //   metricToSave.memoryBytes = memoryUsage - memoryCache
+            // }
+
+            runningNonSwarmContainersMetrics.push(metricToSave);
+          });
+        }
+        callback(runningNonSwarmContainersMetricsPerNodeID);
+      })
+      .catch(e => {
+        console.error('Could not fetch tasks metrics', e)
+        callback(runningNonSwarmContainersMetricsPerNodeID);
+      });
+  } else {
+    callback(runningNonSwarmContainersMetricsPerNodeID);
+  }
+}
+
 const addNodeMetricsToData = (data, lastNodeMetrics) => {
   for (let i = 0; i < data.nodes.length; i++) {
     const node = data.nodes[i];
@@ -522,6 +641,43 @@ const addTaskMetricsToData = (data, lastRunningTasksMetrics) => {
     }
   }
 }
+const addNonSwarmContainersToData = (data, nonSwarmContainers) => {
+  data.nonSwarmContainers = [];
+  const now = moment();
+  for (const nodeID in nonSwarmContainers) {
+    for (let i = 0; i < nonSwarmContainers[nodeID].length; i++) {
+      const container = nonSwarmContainers[nodeID][i];
+      let timestateInfo = undefined;
+      if (showTaskTimestamp) {
+        timestateInfo = moment.duration(container.startedAt - now).humanize(true);
+      }
+      let task = {
+        "ID": container.name,
+        "Name": container.name,
+        "Status": {
+          "Timestamp": container.startedAt.toISOString(),
+          "State": "running",
+          "timestateInfo": timestateInfo,
+        },
+        "Spec": {
+          "ContainerSpec": {
+            "Image": "-"
+          }
+        },
+        "NodeID": nodeID,
+        "info": {}
+      };
+      if (container.cpuPercent !== undefined) {
+        task.info.cpu = `cpu: ${container.cpuPercent}%`;
+      }
+      if (container.memoryBytes !== undefined) {
+        task.info.memory = `mem: ${formatBytes(container.memoryBytes)}`;
+      }
+      data.nonSwarmContainers.push(task);
+    }
+    data.nonSwarmContainers.sort((a, b) => a["Name"] > b["Name"] ? 1 : -1);
+  }
+}
 
 // WebSocket pub-sub
 
@@ -555,6 +711,7 @@ let lastNodeMetrics = [];
 let lastRunningCadvisors = [];
 let lastRunningTasksID = [];
 let lastRunningTasksMetrics = [];
+let lastRunningNonSwarmContainersMetricsPerNodeID = {};
 
 let listeners = [];
 let lastData = {};
@@ -602,6 +759,7 @@ if (debugMode) {
     console.log("lastRunningCadvisors", lastRunningCadvisors);
     console.log("lastRunningTasksID", lastRunningTasksID);
     console.log("lastRunningTasksMetrics", lastRunningTasksMetrics);
+    console.log("lastRunningNonSwarmContainersMetricsPerNodeID", lastRunningNonSwarmContainersMetricsPerNodeID);
     console.log("---------------");
     res.send("logged.")
   });
@@ -614,8 +772,11 @@ setInterval(() => { // update docker data
   fetchDockerData()
     .then(it => {
       let { data, runningNodeExportes, runningCadvisors, runningTasksID } = parseAndRedactDockerData(it);
-      addNodeMetricsToData(data, lastNodeMetrics); // it makes fetching of main data and node metrics independent.
-      addTaskMetricsToData(data, lastRunningTasksMetrics); // it makes fetching of main data and node metrics independent.
+
+      // these make fetching of main data and node metrics independent.
+      addNodeMetricsToData(data, lastNodeMetrics);
+      addTaskMetricsToData(data, lastRunningTasksMetrics)
+      addNonSwarmContainersToData(data, lastRunningNonSwarmContainersMetricsPerNodeID);
 
       data = stabilize(data);
       const sha = sha1OfData(data);
@@ -640,19 +801,26 @@ setInterval(() => { // update node data
   })
 }, metricsUpdateInterval); // refreshs each 5s
 
-setInterval(() => { // update node data
+setInterval(() => { // update tasks data
   fetchTasksMetrics({ lastRunningCadvisors, lastRunningTasksMetrics, lastRunningTasksID }, (runningTasksMetrics) => {
     lastRunningTasksMetrics = runningTasksMetrics;
   })
 }, metricsUpdateInterval); // refreshs each 5s
 
+if (showNonSwarmContainers) {
+  setInterval(() => { // update non swarm containers data
+    fetchNonSwarmContainersMetrics({ lastRunningCadvisors, lastRunningNonSwarmContainersMetricsPerNodeID }, (runningNonSwarmContainersMetrics) => {
+      lastRunningNonSwarmContainersMetricsPerNodeID = runningNonSwarmContainersMetrics;
+    })
+  }, metricsUpdateInterval); // refreshs each 5s
+}
+
 function onWSConnection(ws, req) {
-  let params = undefined;
   let authToken = undefined;
-  if (req)
-    params = parse(req.url, true).query; // { authToken: 'ajsdhakjsdhak' } for 'ws://localhost:1234/?authToken=ajsdhakjsdhak'
-  if (params)
-    authToken = params.authToken;
+  if (req) {
+    const urlObj = new URL(req.url, `http://${req.headers.host}`);
+    authToken = urlObj.searchParams.get('authToken') || undefined;
+  }
 
   if (!enableAuthentication || tokenStore.has(authToken)) {
     if (enableAuthentication) {

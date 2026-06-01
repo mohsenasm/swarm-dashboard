@@ -40,7 +40,7 @@ services:
           - node.role == manager
   
   node-exporter:
-    image: quay.io/prometheus/node-exporter:v1.6.1
+    image: quay.io/prometheus/node-exporter:v1.11.1
     volumes:
       - '/:/host:ro'
     command:
@@ -49,7 +49,7 @@ services:
       mode: global
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    image: ghcr.io/google/cadvisor:0.57.0
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw

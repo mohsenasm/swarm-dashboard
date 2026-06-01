@@ -31,7 +31,7 @@ networkColors =
 
 networkColor : Int -> Color
 networkColor i =
-    Maybe.withDefault "white" (Array.get (i % Array.length networkColors) networkColors)
+    Maybe.withDefault "white" (Array.get (modBy (Array.length networkColors) i) networkColors)
 
 
 
@@ -65,11 +65,11 @@ columnStart i =
 svgLine : ( Float, Float ) -> ( Float, Float ) -> Float -> String -> String -> Svg msg
 svgLine ( ox, oy ) ( dx, dy ) width colour name =
     line
-        [ x1 (toString ox)
-        , y1 (toString oy)
-        , x2 (toString dx)
-        , y2 (toString dy)
-        , strokeWidth (toString width)
+        [ x1 (String.fromFloat ox)
+        , y1 (String.fromFloat oy)
+        , x2 (String.fromFloat dx)
+        , y2 (String.fromFloat dy)
+        , strokeWidth (String.fromFloat width)
         , stroke colour
         ]
         [
@@ -80,9 +80,9 @@ svgLine ( ox, oy ) ( dx, dy ) width colour name =
 svgCircle : ( Float, Float ) -> Float -> String -> String -> Svg msg
 svgCircle ( cenx, ceny ) rad colour name =
     circle
-        [ cx (toString cenx)
-        , cy (toString ceny)
-        , r (toString rad)
+        [ cx (String.fromFloat cenx)
+        , cy (String.fromFloat ceny)
+        , r (String.fromFloat rad)
         , fill colour
         ]
         [
@@ -135,15 +135,15 @@ head networks =
                 []
     in
         svg
-            [ width (toString (totalWidth networks))
-            , height (toString widthStep)
-            , viewBox ("0 0 " ++ toString (totalWidth networks) ++ " " ++ toString widthStep)
+            [ width (String.fromFloat (totalWidth networks))
+            , height (String.fromFloat widthStep)
+            , viewBox (("0 0 " ++ String.fromFloat (totalWidth networks)) ++ (" " ++ String.fromFloat widthStep))
             ]
             (networks |> List.indexedMap cap >> List.concat)
 
 
 attachments : List Connection -> Array Color -> Array String -> Svg msg
-attachments connections colors names =
+attachments connList colors names =
     let
         symbol : Int -> Connection -> List (Svg msg)
         symbol i connection =
@@ -174,12 +174,12 @@ attachments connections colors names =
                         []
     in
         svg
-            [ width (toString (totalWidth connections)), height "62", viewBox ("0 0 " ++ toString (totalWidth connections) ++ " 62") ]
-            (connections |> List.indexedMap symbol >> List.concat)
+            [ width (String.fromFloat (totalWidth connList)), height "62", viewBox (("0 0 " ++ String.fromFloat (totalWidth connList)) ++ " 62") ]
+            (connList |> List.indexedMap symbol >> List.concat)
 
 
 tails : List Connection -> Array Color -> Array String -> Svg msg
-tails connections colors names =
+tails connList colors names =
     let
         symbol i connection =
             let
@@ -195,12 +195,12 @@ tails connections colors names =
                     []
     in
         svg
-            [ width (toString (totalWidth connections))
+            [ width (String.fromFloat (totalWidth connList))
             , height "100%"
-            , viewBox ("0 0 " ++ toString (totalWidth connections) ++ " 1")
+            , viewBox (("0 0 " ++ String.fromFloat (totalWidth connList)) ++ " 1")
             , preserveAspectRatio "none"
             ]
-            (connections |> List.indexedMap symbol >> List.concat)
+            (connList |> List.indexedMap symbol >> List.concat)
 
 
 
@@ -214,13 +214,13 @@ buildConnections =
 
 header : List Network -> H.Html msg
 header networks =
-    H.th [ class "networks", A.style [ ( "width", (toString (totalWidth networks)) ++ "px" ) ] ] [ head networks ]
+    H.th [ A.class "networks", A.style "width" ((String.fromFloat (totalWidth networks)) ++ "px") ] [ head networks ]
 
 
 connections : Service -> Connections -> H.Html msg
 connections service networkConnections =
     let
-        connections =
+        serviceConns =
             NetworkConnections.serviceConnections service networkConnections
 
         colors =
@@ -229,7 +229,7 @@ connections service networkConnections =
         names =
             networkConnections.networks |> Array.fromList << List.indexedMap (\i n -> n.name)
     in
-        H.td [ class "networks" ]
-            [ attachments connections colors names
-            , H.div [] [ tails connections colors names ]
+        H.td [ A.class "networks" ]
+            [ attachments serviceConns colors names
+            , H.div [] [ tails serviceConns colors names ]
             ]

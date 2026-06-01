@@ -1,7 +1,7 @@
 module Docker.Types exposing (..)
 
 import Dict exposing (Dict)
-import Date exposing (Date)
+import Time exposing (Posix)
 
 
 type alias NodeId =
@@ -66,7 +66,7 @@ type alias Service =
 
 
 type alias TaskStatus =
-    { timestamp : Date
+    { timestamp : Posix
     , timestateInfo : Maybe String
     , state : String
     }
@@ -128,6 +128,7 @@ type alias Docker =
     , services : List Service
     , plannedTasks : List PlannedTask
     , assignedTasks : List AssignedTask
+    , nonSwarmContainers : List Container
     , refreshTime : String
     }
 
@@ -137,6 +138,7 @@ type alias DockerApiData =
     , networks : List Network
     , services : List RawService
     , tasks : List Task
+    , nonSwarmContainers : List Container
     , refreshTime : String
     }
 
@@ -152,3 +154,13 @@ type alias TaskIndex =
 taskIndexKey : AssignedTask -> TaskIndexKey
 taskIndexKey { nodeId, serviceId } =
     ( nodeId, serviceId )
+
+
+type alias Container =
+    { id : String
+    , name : String
+    , nodeId : String
+    , status : TaskStatus
+    , containerSpec : ContainerSpec
+    , info : TaskInfo
+    }

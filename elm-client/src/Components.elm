@@ -26,10 +26,10 @@ task service { status, desiredState, containerSpec, slot, info } =
             , ( "running-old", status.state == "running" && service.containerSpec.image /= containerSpec.image )
             ]
 
-        slotLabel slot =
-            case slot of
+        slotLabel slotVal =
+            case slotVal of
                 Just s ->
-                    "." ++ toString s
+                    "." ++ String.fromInt s
 
                 Nothing ->
                     ""
@@ -79,10 +79,10 @@ task service { status, desiredState, containerSpec, slot, info } =
 
 
 serviceNode : Service -> TaskIndex -> Node -> Html msg
-serviceNode service taskAllocations node =
+serviceNode service taskAllocations nodeItem =
     let
         tasks =
-            Maybe.withDefault [] (Dict.get ( node.id, service.id ) taskAllocations)
+            Maybe.withDefault [] (Dict.get ( nodeItem.id, service.id ) taskAllocations)
         forThisService (n, s) = 
             s == service.id
         tasksOfThisService = List.filter forThisService (Dict.keys taskAllocations)
@@ -102,22 +102,22 @@ serviceRow nodes taskAllocations networkConnections service =
 
 
 node : Node -> Html msg
-node node =
+node nodeItem =
     let
         leader =
-            Maybe.withDefault False (Maybe.map .leader node.managerStatus)
+            Maybe.withDefault False (Maybe.map .leader nodeItem.managerStatus)
 
         classes =
-            [ ( "down", node.status.state == "down" )
-            , ( "manager", node.role == "manager" )
+            [ ( "down", nodeItem.status.state == "down" )
+            , ( "manager", nodeItem.role == "manager" )
             , ( "leader", leader )
             ]
 
         nodeRole =
-            String.join " " [ node.role, iff leader "(leader)" "" ]
+            String.join " " [ nodeItem.role, iff leader "(leader)" "" ]
 
         info =
-            case node.info of
+            case nodeItem.info of
                 Just s ->
                     [
                         br [] []
@@ -130,11 +130,11 @@ node node =
         th [ classList classes ]
             (List.concat [
                 [ 
-                    strong [] [ text node.name ]
+                    strong [] [ text nodeItem.name ]
                     , br [] []
                     , text nodeRole
                     , br [] []
-                    , text node.status.address
+                    , text nodeItem.status.address
                 ]
                 , info
             ])
@@ -148,13 +148,78 @@ swarmHeader nodes networks refreshTime =
            ) :: Networks.header networks :: (nodes |> List.map node))
 
 
-swarmGrid : List Service -> List Node -> List Network -> TaskIndex -> String -> Html msg
-swarmGrid services nodes networks taskAllocations refreshTime =
+swarmGrid : List Service -> List Node -> List Network -> TaskIndex -> List Container -> String -> Html msg
+swarmGrid services nodes networks taskAllocations nonSwarmContainers refreshTime =
     let
         networkConnections =
             Networks.buildConnections services networks
     in
         table []
             [ thead [] [ swarmHeader nodes networks refreshTime ]
-            , tbody [] (List.map (serviceRow nodes taskAllocations networkConnections) services)
+            , tbody [] 
+                (List.concat
+                    [ List.map (serviceRow nodes taskAllocations networkConnections) services
+                    , [ nonSwarmContainerRow nodes nonSwarmContainers ]
+                    ])
             ]
+
+
+nonSwarmContainerRow : List Node -> List Container -> Html msg
+nonSwarmContainerRow nodes containers =
+    let
+        containersByNode =
+            groupBy (.nodeId) containers
+
+        containerCell : List Container -> Html msg
+        containerCell conts =
+            td []
+                [ ul [] (List.map nonSwarmContainerItem conts) ]
+
+        nonSwarmContainerItem : Container -> Html msg
+        nonSwarmContainerItem { name, status, containerSpec, info } =
+            let
+                classes =
+                    [ ( status.state, True )
+                    , ( "task", True )
+                    , ( "desired-running", True )
+                    ]
+
+                cpuInfo =
+                    case info.cpu of
+                        Just s ->
+                            [ div [ class "tag left" ] [ text s ] ]
+                        Nothing ->
+                            []
+
+                memoryInfo =
+                    case info.memory of
+                        Just s ->
+                            [ div [ class "tag right" ] [ text s ] ]
+                        Nothing ->
+                            []
+
+                timestateInfo =
+                    case status.timestateInfo of
+                        Just s ->
+                            [ small [] [ text ( "  (" ++ s ++ ")") ] ]
+                        Nothing ->
+                            []
+            in
+                li [ classList classes ]
+                    (List.concat
+                        [ cpuInfo
+                        , memoryInfo
+                        , [ text name
+                          , br [] []
+                          , text status.state
+                          ]
+                        , timestateInfo
+                        ])
+    in
+        if List.isEmpty containers then
+            text ""
+        else
+            tr []
+                (th [] [ text "Non-Swarm Containers" ] 
+                    :: td [ class "networks" ] []
+                    :: (List.map (\n -> containerCell (Maybe.withDefault [] (Dict.get n.id containersByNode))) nodes))
