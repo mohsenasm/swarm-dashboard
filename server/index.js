@@ -42,6 +42,7 @@ const _cadvisorServiceNameRegex = process.env.CADVISOR_SERVICE_NAME_REGEX || "";
 const useCadvisor = _cadvisorServiceNameRegex !== "";
 const cadvisorServiceNameRegex = new RegExp(_cadvisorServiceNameRegex);
 const cadvisorPort = process.env.CADVISOR_PORT || "8080";
+const showNonSwarmContainers = process.env.SHOW_NON_SWARM_CONTAINERS === "true";
 
 let pathPrefix = process.env.PATH_PREFIX || "/";
 if (pathPrefix.endsWith("/")) {
@@ -541,7 +542,7 @@ const fetchNonSwarmContainersMetrics = ({ lastRunningCadvisors, lastRunningNonSw
                   const startDate = new Date(startTimeSeconds * 1000);
                   containerMap.set(labels.name, {
                     name: labels.name,
-                    startedAt: startDate.toLocaleString()
+                    startedAt: startDate.getTime()
                   });
                 }
               }
@@ -640,6 +641,39 @@ const addTaskMetricsToData = (data, lastRunningTasksMetrics) => {
     }
   }
 }
+const addNonSwarmContainersToData = (data, nonSwarmContainers) => {
+  const now = moment();
+  for (const nodeID in nonSwarmContainers) {
+    for (let i = 0; i < nonSwarmContainers[nodeID].length; i++) {
+      const container = nonSwarmContainers[nodeID][i];
+      let timestateInfo = undefined;
+      if (showTaskTimestamp) {
+        timestateInfo = moment.duration(container.startedAt - now).humanize(true);
+      }
+      let task = {
+        "ID": container.name,
+        "ServiceID": container.name,
+        "Status": {
+          "Timestamp": container.startedAt,
+          "State": "running",
+          "timestateInfo": timestateInfo,
+        },
+        "DesiredState": "running",
+        "Spec": {
+          "ContainerSpec": {
+            "Image": "-"
+          }
+        },
+        "NodeID": nodeID,
+        "info": {
+          "cpu": taskMetric.cpuPercent,
+          "mem": formatBytes(taskMetric.memoryBytes),
+        }
+      };
+      data.tasks.put(task);
+    }
+  }
+}
 
 // WebSocket pub-sub
 
@@ -721,6 +755,7 @@ if (debugMode) {
     console.log("lastRunningCadvisors", lastRunningCadvisors);
     console.log("lastRunningTasksID", lastRunningTasksID);
     console.log("lastRunningTasksMetrics", lastRunningTasksMetrics);
+    console.log("lastRunningNonSwarmContainersMetricsPerNodeID", lastRunningNonSwarmContainersMetricsPerNodeID);
     console.log("---------------");
     res.send("logged.")
   });
@@ -733,8 +768,11 @@ setInterval(() => { // update docker data
   fetchDockerData()
     .then(it => {
       let { data, runningNodeExportes, runningCadvisors, runningTasksID } = parseAndRedactDockerData(it);
-      addNodeMetricsToData(data, lastNodeMetrics); // it makes fetching of main data and node metrics independent.
-      addTaskMetricsToData(data, lastRunningTasksMetrics); // it makes fetching of main data and node metrics independent.
+
+      // these make fetching of main data and node metrics independent.
+      addNodeMetricsToData(data, lastNodeMetrics);
+      addTaskMetricsToData(data, lastRunningTasksMetrics)
+      addNonSwarmContainersToData(data, lastRunningNonSwarmContainersMetricsPerNodeID);
 
       data = stabilize(data);
       const sha = sha1OfData(data);
@@ -765,13 +803,13 @@ setInterval(() => { // update tasks data
   })
 }, metricsUpdateInterval); // refreshs each 5s
 
-setInterval(() => { // update non swarm containers data
-  fetchNonSwarmContainersMetrics({ lastRunningCadvisors, lastRunningNonSwarmContainersMetricsPerNodeID }, (runningNonSwarmContainersMetrics) => {
-    lastRunningNonSwarmContainersMetricsPerNodeID = runningNonSwarmContainersMetrics;
-    console.log(runningNonSwarmContainersMetrics);
-  })
-}, metricsUpdateInterval); // refreshs each 5s
-
+if (showNonSwarmContainers) {
+  setInterval(() => { // update non swarm containers data
+    fetchNonSwarmContainersMetrics({ lastRunningCadvisors, lastRunningNonSwarmContainersMetricsPerNodeID }, (runningNonSwarmContainersMetrics) => {
+      lastRunningNonSwarmContainersMetricsPerNodeID = runningNonSwarmContainersMetrics;
+    })
+  }, metricsUpdateInterval); // refreshs each 5s
+}
 
 function onWSConnection(ws, req) {
   let authToken = undefined;
