@@ -507,6 +507,7 @@ const fetchNonSwarmContainersMetrics = ({ lastRunningCadvisors, lastRunningNonSw
           allMetrics = allMetrics.concat(metricsList[i]);
         }
 
+        console.log("check containers ...")
         const containerMap = new Map();
         for (const family of metricsList) {
           // Look for container_start_time_seconds metric family
@@ -524,6 +525,7 @@ const fetchNonSwarmContainersMetrics = ({ lastRunningCadvisors, lastRunningNonSw
               const startTimeSeconds = parseFloat(metric.value);
               if (!isNaN(startTimeSeconds)) {
                 const startDate = new Date(startTimeSeconds * 1000);
+                console.log("found container", labels.name)
                 containerMap.set(labels.name, {
                   name: labels.name,
                   startedAt: startDate.toLocaleString()
@@ -535,6 +537,7 @@ const fetchNonSwarmContainersMetrics = ({ lastRunningCadvisors, lastRunningNonSw
 
         containerMap.forEach(container => {
           const metricToSave = { name: container.name, startedAt: container.startedAt, fetchTime: currentTime() };
+          console.log("metricToSave 1", metricToSave)
 
           // last metrics
           let lastMetricsOfThisTask = {};
@@ -569,6 +572,7 @@ const fetchNonSwarmContainersMetrics = ({ lastRunningCadvisors, lastRunningNonSw
           // }
 
           runningNonSwarmContainersMetrics.push(metricToSave);
+          console.log("metricToSave 2", metricToSave)
         });
         callback(runningNonSwarmContainersMetrics);
       })
