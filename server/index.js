@@ -563,7 +563,7 @@ const fetchNonSwarmContainersMetrics = ({ lastRunningCadvisors, lastRunningNonSw
             }
 
             // cpu
-            metricToSave.cpuSecondsTotal = sum(findAllMetricValue(allMetrics, "container_cpu_usage_seconds_total", [{ name: "name", value: metricToSave.name }]));
+            metricToSave.cpuSecondsTotal = sum(findAllMetricValue(metrics, "container_cpu_usage_seconds_total", [{ name: "name", value: metricToSave.name }]));
             if (
               (lastMetricsOfThisTask.cpuSecondsTotal !== undefined) &&
               (timeDiffFromLastMetrics > 0)
@@ -572,9 +572,9 @@ const fetchNonSwarmContainersMetrics = ({ lastRunningCadvisors, lastRunningNonSw
             }
 
             // memory
-            metricToSave.memoryBytes = findMetricValue(allMetrics, "container_memory_rss", [{ name: "name", value: metricToSave.name }]);
-            // let memoryUsage = findMetricValue(allMetrics, "container_memory_usage_bytes", [{ name: "name", value: metricToSave.name }]);
-            // let memoryCache = findMetricValue(allMetrics, "container_memory_cache", [{ name: "name", value: metricToSave.name }]);
+            metricToSave.memoryBytes = findMetricValue(metrics, "container_memory_rss", [{ name: "name", value: metricToSave.name }]);
+            // let memoryUsage = findMetricValue(metrics, "container_memory_usage_bytes", [{ name: "name", value: metricToSave.name }]);
+            // let memoryCache = findMetricValue(metrics, "container_memory_cache", [{ name: "name", value: metricToSave.name }]);
             // console.log(memoryUsage, memoryCache);
             // if (
             //   (memoryUsage !== undefined) &&
