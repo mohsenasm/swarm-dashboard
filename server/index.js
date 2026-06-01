@@ -131,8 +131,8 @@ const fetchMetrics = (nodes) => {
   for (let i = 0; i < nodes.length; i++) {
     let node = nodes[i];
     promises.push(metricRequest(node.url)
-      .then(parsePrometheusTextFormat))
-      .then(metrics => ({ nodeID: node.nodeID, metrics }));
+      .then(parsePrometheusTextFormat)
+      .then(metrics => ({ nodeID: node.nodeID, metrics })));
   }
   return Promise.all(promises);
 }
