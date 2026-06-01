@@ -92,6 +92,24 @@ task =
         (Json.at [ "info" ] taskInfo)
 
 
+containerInfo : Json.Decoder TaskInfo
+containerInfo =
+    Json.map2 TaskInfo
+        (Json.maybe (Json.at [ "info", "cpu" ] Json.string))
+        (Json.maybe (Json.at [ "info", "memory" ] Json.string))
+
+
+container : Json.Decoder Container
+container =
+    Json.map6 Container
+        (Json.at [ "ID" ] Json.string)
+        (Json.at [ "Name" ] Json.string)
+        (Json.at [ "NodeID" ] Json.string)
+        (Json.at [ "Status" ] taskStatus)
+        (Json.at [ "Spec", "ContainerSpec" ] containerSpec)
+        containerInfo
+
+
 dockerApi : Json.Decoder DockerApiData
 dockerApi =
     Json.map6 DockerApiData
@@ -106,13 +124,3 @@ dockerApi =
 parse : String -> Result String DockerApiData
 parse input =
     Json.decodeString dockerApi input |> Result.mapError Json.errorToString
-
-container : Json.Decoder Container
-container =
-    Json.map6 Container
-        (Json.at [ "ID" ] Json.string)
-        (Json.at [ "Name" ] Json.string)
-        (Json.at [ "NodeID" ] Json.string)
-        (Json.at [ "Status" ] taskStatus)
-        (Json.at [ "Spec", "ContainerSpec" ] containerSpec)
-        (Json.at [ "info" ] taskInfo)
