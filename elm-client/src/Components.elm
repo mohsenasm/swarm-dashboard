@@ -148,13 +148,40 @@ swarmHeader nodes networks refreshTime =
            ) :: Networks.header networks :: (nodes |> List.map node))
 
 
-swarmGrid : List Service -> List Node -> List Network -> TaskIndex -> String -> Html msg
-swarmGrid services nodes networks taskAllocations refreshTime =
+swarmGrid : List Service -> List Node -> List Network -> TaskIndex -> List Container -> String -> Html msg
+swarmGrid services nodes networks taskAllocations nonSwarmContainers refreshTime =
     let
         networkConnections =
             Networks.buildConnections services networks
     in
         table []
             [ thead [] [ swarmHeader nodes networks refreshTime ]
-            , tbody [] (List.map (serviceRow nodes taskAllocations networkConnections) services)
+            , tbody [] 
+                (List.concat
+                    [ List.map (serviceRow nodes taskAllocations networkConnections) services
+                    , [ nonSwarmContainerRow nodes nonSwarmContainers ]
+                    ])
             ]
+
+nonSwarmContainerRow : List Node -> List Container -> Html msg
+nonSwarmContainerRow nodes containers =
+    let
+        nodeMap =
+            indexBy (.id) nodes
+
+        containersByNode =
+            groupBy (.nodeId) containers
+
+        containerCell : List Container -> Html msg
+        containerCell conts =
+            td []
+                [ ul [] (List.map (taskF conts) (List.concat [[]])) ]
+
+        taskF : List Container -> () -> Html msg
+        taskF conts _ =
+            li [ class "non-swarm-container" ]
+                [ text "Non-Swarm Container" ]
+    in
+        tr []
+            (th [] [ text "Non-Swarm Containers" ] 
+                :: (List.map containerCell (List.map (\n -> Maybe.withDefault [] (Dict.get n.id containersByNode)) nodes)))

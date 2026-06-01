@@ -35,6 +35,7 @@ type alias Model =
     , authToken : String
     , swarm : Docker
     , tasks : TaskIndex
+    , nonSwarmContainers : List Container
     , errors : List String
     }
 
@@ -107,7 +108,11 @@ update msg model =
         Receive serverJson ->
             case fromJson serverJson of
                 Ok serverData ->
-                    ( { model | swarm = serverData, tasks = groupBy taskIndexKey serverData.assignedTasks }, Cmd.none )
+                    ( { model 
+                        | swarm = serverData
+                        , tasks = groupBy taskIndexKey serverData.assignedTasks
+                        , nonSwarmContainers = serverData.nonSwarmContainers
+                      }, Cmd.none )
 
                 Err error ->
                     if String.contains "WrongAuthToken" error then -- caused by a reconnection
@@ -131,7 +136,7 @@ subscriptions model =
 
 
 view : Model -> Browser.Document Msg
-view { swarm, tasks, errors } =
+view { swarm, tasks, nonSwarmContainers, errors } =
     let
         { services, nodes, networks, refreshTime } =
             swarm
@@ -139,7 +144,7 @@ view { swarm, tasks, errors } =
         { title = "Swarm Dashboard"
         , body =
             [ div []
-                [ UI.swarmGrid services nodes networks tasks refreshTime
+                [ UI.swarmGrid services nodes networks tasks nonSwarmContainers refreshTime
                 , ul [] (List.map (\e -> li [] [ text e ]) errors)
                 ]
             ]

@@ -642,6 +642,7 @@ const addTaskMetricsToData = (data, lastRunningTasksMetrics) => {
   }
 }
 const addNonSwarmContainersToData = (data, nonSwarmContainers) => {
+  data.nonSwarmContainers = [];
   const now = moment();
   for (const nodeID in nonSwarmContainers) {
     for (let i = 0; i < nonSwarmContainers[nodeID].length; i++) {
@@ -670,7 +671,7 @@ const addNonSwarmContainersToData = (data, nonSwarmContainers) => {
           "mem": formatBytes(container.memoryBytes),
         }
       };
-      data.tasks.push(task);
+      data.nonSwarmContainers.push(task);
     }
   }
 }

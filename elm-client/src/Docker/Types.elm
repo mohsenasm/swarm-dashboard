@@ -128,6 +128,7 @@ type alias Docker =
     , services : List Service
     , plannedTasks : List PlannedTask
     , assignedTasks : List AssignedTask
+    , nonSwarmContainers : List Container
     , refreshTime : String
     }
 
@@ -137,6 +138,7 @@ type alias DockerApiData =
     , networks : List Network
     , services : List RawService
     , tasks : List Task
+    , nonSwarmContainers : List Container
     , refreshTime : String
     }
 
@@ -152,3 +154,13 @@ type alias TaskIndex =
 taskIndexKey : AssignedTask -> TaskIndexKey
 taskIndexKey { nodeId, serviceId } =
     ( nodeId, serviceId )
+
+
+type alias Container =
+    { id : String
+    , name : String
+    , nodeId : String
+    , status : TaskStatus
+    , containerSpec : ContainerSpec
+    , info : TaskInfo
+    }

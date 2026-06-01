@@ -94,14 +94,25 @@ task =
 
 dockerApi : Json.Decoder DockerApiData
 dockerApi =
-    Json.map5 DockerApiData
+    Json.map6 DockerApiData
         (Json.at [ "nodes" ] (Json.list node))
         (Json.at [ "networks" ] (Json.list network))
         (Json.at [ "services" ] (Json.list service))
         (Json.at [ "tasks" ] (Json.list task))
+        (Json.at [ "nonSwarmContainers" ] (Json.list container))
         (Json.at [ "refreshTime" ] Json.string)
 
 
 parse : String -> Result String DockerApiData
 parse input =
     Json.decodeString dockerApi input |> Result.mapError Json.errorToString
+
+container : Json.Decoder Container
+container =
+    Json.map7 Container
+        (Json.at [ "ID" ] Json.string)
+        (Json.at [ "Name" ] Json.string)
+        (Json.at [ "NodeID" ] Json.string)
+        (Json.at [ "Status" ] taskStatus)
+        (Json.at [ "Spec", "ContainerSpec" ] containerSpec)
+        (Json.at [ "info" ] taskInfo)

@@ -51,7 +51,7 @@ withoutFailedTaskHistory =
 
 
 process : DockerApiData -> Docker
-process { nodes, networks, services, tasks, refreshTime } =
+process { nodes, networks, services, tasks, nonSwarmContainers, refreshTime } =
     let
         emptyNetwork =
             { id = "", ingress = False, name = "" }
@@ -92,13 +92,14 @@ process { nodes, networks, services, tasks, refreshTime } =
         , services = (List.sortBy .name (linkNetworks services))
         , plannedTasks = plannedTasks
         , assignedTasks = (filterTasks assignedTasks)
+        , nonSwarmContainers = nonSwarmContainers
         , refreshTime = refreshTime
         }
 
 
 empty : Docker
 empty =
-    Docker [] [] [] [] [] ""
+    Docker [] [] [] [] [] "" []
 
 
 fromJson : String -> Result String Docker
