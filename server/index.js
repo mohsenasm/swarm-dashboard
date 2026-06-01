@@ -711,7 +711,7 @@ let lastNodeMetrics = [];
 let lastRunningCadvisors = [];
 let lastRunningTasksID = [];
 let lastRunningTasksMetrics = [];
-let lastRunningNonSwarmContainersMetricsPerNodeID = [];
+let lastRunningNonSwarmContainersMetricsPerNodeID = {};
 
 let listeners = [];
 let lastData = {};
