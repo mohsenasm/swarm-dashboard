@@ -542,7 +542,7 @@ const fetchNonSwarmContainersMetrics = ({ lastRunningCadvisors, lastRunningNonSw
                   const startDate = new Date(startTimeSeconds * 1000);
                   containerMap.set(labels.name, {
                     name: labels.name,
-                    startedAt: startDate.getTime()
+                    startedAt: startDate
                   });
                 }
               }
@@ -654,7 +654,7 @@ const addNonSwarmContainersToData = (data, nonSwarmContainers) => {
         "ID": container.name,
         "ServiceID": container.name,
         "Status": {
-          "Timestamp": container.startedAt,
+          "Timestamp": container.startedAt.toISOString(),
           "State": "running",
           "timestateInfo": timestateInfo,
         },
