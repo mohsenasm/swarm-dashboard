@@ -221,5 +221,5 @@ nonSwarmContainerRow nodes containers =
         else
             tr []
                 (th [] [ text "Non-Swarm Containers" ] 
-                    :: td [] []
+                    :: td [ class "networks" ] []
                     :: (List.map (\n -> containerCell (Maybe.withDefault [] (Dict.get n.id containersByNode))) nodes))
