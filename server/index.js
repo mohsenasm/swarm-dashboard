@@ -666,8 +666,8 @@ const addNonSwarmContainersToData = (data, nonSwarmContainers) => {
         },
         "NodeID": nodeID,
         "info": {
-          "cpu": taskMetric.cpuPercent,
-          "mem": formatBytes(taskMetric.memoryBytes),
+          "cpu": container.cpuPercent,
+          "mem": formatBytes(container.memoryBytes),
         }
       };
       data.tasks.put(task);
