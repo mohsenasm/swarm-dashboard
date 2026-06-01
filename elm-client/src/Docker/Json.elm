@@ -109,7 +109,7 @@ parse input =
 
 container : Json.Decoder Container
 container =
-    Json.map7 Container
+    Json.map6 Container
         (Json.at [ "ID" ] Json.string)
         (Json.at [ "Name" ] Json.string)
         (Json.at [ "NodeID" ] Json.string)

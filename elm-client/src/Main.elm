@@ -84,6 +84,7 @@ init _ location _ =
       , authToken = ""
       , swarm = Docker.empty
       , tasks = Dict.empty
+      , nonSwarmContainers = []
       , errors = []
       }
     , authTokenGetter location.path

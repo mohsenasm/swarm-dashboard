@@ -99,7 +99,7 @@ process { nodes, networks, services, tasks, nonSwarmContainers, refreshTime } =
 
 empty : Docker
 empty =
-    Docker [] [] [] [] [] "" []
+    Docker [] [] [] [] [] [] ""
 
 
 fromJson : String -> Result String Docker
