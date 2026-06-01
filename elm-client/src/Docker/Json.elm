@@ -95,8 +95,8 @@ task =
 containerInfo : Json.Decoder TaskInfo
 containerInfo =
     Json.map2 TaskInfo
-        (Json.maybe (Json.at [ "info", "cpu" ] Json.string))
-        (Json.maybe (Json.at [ "info", "memory" ] Json.string))
+        (Json.maybe (Json.field "info" (Json.maybe (Json.field "cpu" Json.string))) |> Json.map (Maybe.andThen identity))
+        (Json.maybe (Json.field "info" (Json.maybe (Json.field "memory" Json.string))) |> Json.map (Maybe.andThen identity))
 
 
 container : Json.Decoder Container
