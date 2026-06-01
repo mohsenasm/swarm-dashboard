@@ -670,7 +670,7 @@ const addNonSwarmContainersToData = (data, nonSwarmContainers) => {
           "mem": formatBytes(container.memoryBytes),
         }
       };
-      data.tasks.put(task);
+      data.tasks.push(task);
     }
   }
 }
