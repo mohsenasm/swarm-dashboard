@@ -665,13 +665,17 @@ const addNonSwarmContainersToData = (data, nonSwarmContainers) => {
           }
         },
         "NodeID": nodeID,
-        "info": {
-          "cpu": `cpu: ${container.cpuPercent}%`,
-          "mem": `mem: ${formatBytes(container.memoryBytes)}`,
-        }
+        "info": {}
       };
+      if (container.cpuPercent !== undefined) {
+        task.info.cpu = `cpu: ${container.cpuPercent}%`;
+      }
+      if (container.memoryBytes !== undefined) {
+        task.info.memory = `mem: ${formatBytes(container.memoryBytes)}`;
+      }
       data.nonSwarmContainers.push(task);
     }
+    data.nonSwarmContainers.sort((a, b) => a["Name"] > b["Name"] ? 1 : -1);
   }
 }
 
