@@ -163,6 +163,7 @@ swarmGrid services nodes networks taskAllocations nonSwarmContainers refreshTime
                     ])
             ]
 
+
 nonSwarmContainerRow : List Node -> List Container -> Html msg
 nonSwarmContainerRow nodes containers =
     let
@@ -177,6 +178,12 @@ nonSwarmContainerRow nodes containers =
         nonSwarmContainerItem : Container -> Html msg
         nonSwarmContainerItem { name, status, containerSpec, info } =
             let
+                classes =
+                    [ ( status.state, True )
+                    , ( "task", True )
+                    , ( "desired-running", True )
+                    ]
+
                 cpuInfo =
                     case info.cpu of
                         Just s ->
@@ -198,7 +205,7 @@ nonSwarmContainerRow nodes containers =
                         Nothing ->
                             []
             in
-                li [ class "non-swarm-container", classList [ ( status.state, True ), ( "desired-running", True ) ] ]
+                li [ classList classes ]
                     (List.concat
                         [ cpuInfo
                         , memoryInfo
@@ -214,4 +221,5 @@ nonSwarmContainerRow nodes containers =
         else
             tr []
                 (th [] [ text "Non-Swarm Containers" ] 
+                    :: td [] []
                     :: (List.map (\n -> containerCell (Maybe.withDefault [] (Dict.get n.id containersByNode))) nodes))
