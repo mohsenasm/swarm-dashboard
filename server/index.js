@@ -76,10 +76,10 @@ if (dockerSocket.startsWith("tcp://")) {
     dockerRequestBaseOptions.host = match[1];
     dockerRequestBaseOptions.port = parseInt(match[2]);
   } else {
-      console.log("error is parsing DOCKER_SOCKET");
+    console.log("error is parsing DOCKER_SOCKET");
   }
 } else {
-    dockerRequestBaseOptions.socketPath = dockerSocket;
+  dockerRequestBaseOptions.socketPath = dockerSocket;
 }
 const dockerAPIRequest = path => {
   return new Promise((res, rej) => {
@@ -479,6 +479,108 @@ const fetchTasksMetrics = ({ lastRunningCadvisors, lastRunningTasksMetrics, last
   }
 }
 
+function hasSwarmLabel(labels) {
+  // Return false if labels object is null or undefined
+  if (!labels) return false;
+
+  for (const [key, value] of Object.entries(labels)) {
+    // Check if the label key contains the Swarm identifier
+    if (key.includes("com_docker_swarm")) {
+      // Return true if the value exists and is NOT just empty spaces
+      if (value && value.trim() !== "") {
+        return true;
+      }
+    }
+  }
+
+  // Return false if no Swarm labels were found, or if they were all empty
+  return false;
+}
+
+const fetchNonSwarmContainersMetrics = ({ lastRunningCadvisors, lastRunningNonSwarmContainersMetrics }, callback) => {
+  let runningNonSwarmContainersMetrics = [];
+  if (lastRunningCadvisors.length > 0) { // should fetch metrics
+    fetchMetrics(lastRunningCadvisors.map(({ address }) => `http://${address}:${cadvisorPort}/metrics`))
+      .then(metricsList => {
+        let allMetrics = [];
+        for (let i = 0; i < metricsList.length; i++) {
+          allMetrics = allMetrics.concat(metricsList[i]);
+        }
+
+        const containerMap = new Map();
+        for (const family of metricFamilies) {
+          // Look for container_start_time_seconds metric family
+          if (family.name === 'container_start_time_seconds') {
+            // Iterate through individual metrics in this family
+            for (const metric of family.metrics) {
+              const labels = metric.labels;
+              // Skip if no labels
+              if (!labels) continue;
+              // Skip the root cAdvisor tracking metric and empty names
+              if (!labels.name || labels.name === '/') continue;
+              // Skip swarm tasks
+              if (hasSwarmLabel(labels)) continue;
+              // Extract the metric value (the timestamp)
+              const startTimeSeconds = parseFloat(metric.value);
+              if (!isNaN(startTimeSeconds)) {
+                const startDate = new Date(startTimeSeconds * 1000);
+                containerMap.set(labels.name, {
+                  name: labels.name,
+                  startedAt: startDate.toLocaleString()
+                });
+              }
+            }
+          }
+        }
+
+        containerMap.forEach(container => {
+          const metricToSave = { name: container.name, startedAt: container.startedAt, fetchTime: currentTime() };
+
+          // last metrics
+          let lastMetricsOfThisTask = {};
+          let timeDiffFromLastMetrics = 0;
+          for (let k = 0; k < lastRunningNonSwarmContainersMetrics.length; k++) {
+            if (lastRunningNonSwarmContainersMetrics[k].name === metricToSave.name) {
+              lastMetricsOfThisTask = lastRunningNonSwarmContainersMetrics[k];
+              timeDiffFromLastMetrics = metricToSave.fetchTime - lastMetricsOfThisTask.fetchTime
+              break;
+            }
+          }
+
+          // cpu
+          metricToSave.cpuSecondsTotal = sum(findAllMetricValue(allMetrics, "container_cpu_usage_seconds_total", [{ name: "name", value: metricToSave.name }]));
+          if (
+            (lastMetricsOfThisTask.cpuSecondsTotal !== undefined) &&
+            (timeDiffFromLastMetrics > 0)
+          ) {
+            metricToSave.cpuPercent = Math.round((metricToSave.cpuSecondsTotal - lastMetricsOfThisTask.cpuSecondsTotal) * 100 / timeDiffFromLastMetrics);
+          }
+
+          // memory
+          metricToSave.memoryBytes = findMetricValue(allMetrics, "container_memory_rss", [{ name: "name", value: metricToSave.name }]);
+          // let memoryUsage = findMetricValue(allMetrics, "container_memory_usage_bytes", [{ name: "name", value: metricToSave.name }]);
+          // let memoryCache = findMetricValue(allMetrics, "container_memory_cache", [{ name: "name", value: metricToSave.name }]);
+          // console.log(memoryUsage, memoryCache);
+          // if (
+          //   (memoryUsage !== undefined) &&
+          //   (memoryCache !== undefined)
+          // ) {
+          //   metricToSave.memoryBytes = memoryUsage - memoryCache
+          // }
+
+          runningNonSwarmContainersMetrics.push(metricToSave);
+        });
+        callback(runningNonSwarmContainersMetrics);
+      })
+      .catch(e => {
+        console.error('Could not fetch tasks metrics', e)
+        callback(runningNonSwarmContainersMetrics);
+      });
+  } else {
+    callback(runningNonSwarmContainersMetrics);
+  }
+}
+
 const addNodeMetricsToData = (data, lastNodeMetrics) => {
   for (let i = 0; i < data.nodes.length; i++) {
     const node = data.nodes[i];
@@ -555,6 +657,7 @@ let lastNodeMetrics = [];
 let lastRunningCadvisors = [];
 let lastRunningTasksID = [];
 let lastRunningTasksMetrics = [];
+let lastRunningNonSwarmContainersMetrics = [];
 
 let listeners = [];
 let lastData = {};
@@ -640,11 +743,19 @@ setInterval(() => { // update node data
   })
 }, metricsUpdateInterval); // refreshs each 5s
 
-setInterval(() => { // update node data
+setInterval(() => { // update tasks data
   fetchTasksMetrics({ lastRunningCadvisors, lastRunningTasksMetrics, lastRunningTasksID }, (runningTasksMetrics) => {
     lastRunningTasksMetrics = runningTasksMetrics;
   })
 }, metricsUpdateInterval); // refreshs each 5s
+
+setInterval(() => { // update non swarm containers data
+  fetchNonSwarmContainersMetrics({ lastRunningCadvisors, lastRunningNonSwarmContainersMetrics }, (runningNonSwarmContainersMetrics) => {
+    lastRunningNonSwarmContainersMetrics = runningNonSwarmContainersMetrics;
+    console.log(runningNonSwarmContainersMetrics);
+  })
+}, metricsUpdateInterval); // refreshs each 5s
+
 
 function onWSConnection(ws, req) {
   let authToken = undefined;
