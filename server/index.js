@@ -675,7 +675,7 @@ const addNonSwarmContainersToData = (data, nonSwarmContainers) => {
       }
       data.nonSwarmContainers.push(task);
     }
-    data.nonSwarmContainers.sort((a, b) => a["Name"] > b["Name"] ? 1 : -1);
+    data.nonSwarmContainers.sort((a, b) => a["Name"] < b["Name"] ? 1 : -1);
   }
 }
 
