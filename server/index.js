@@ -126,10 +126,13 @@ const metricRequest = (url) => {
   });
 };
 
-const fetchMetrics = (addresses) => {
+const fetchMetrics = (nodes) => {
   let promises = [];
-  for (let i = 0; i < addresses.length; i++) {
-    promises.push(metricRequest(addresses[i]).then(parsePrometheusTextFormat));
+  for (let i = 0; i < nodes.length; i++) {
+    let node = nodes[i];
+    promises.push(metricRequest(node.url)
+      .then(parsePrometheusTextFormat))
+      .then(metrics => ({ nodeID: node.nodeID, metrics }));
   }
   return Promise.all(promises);
 }
@@ -291,7 +294,7 @@ const parseAndRedactDockerData = data => {
             ipList.push(ip.split("/")[0]);
           }
         }
-        runningCadvisors.push({ address: ipList[0] });
+        runningCadvisors.push({ nodeID: baseTask["NodeID"], address: ipList[0] });
       }
     }
     if (baseTask["Status"]["State"] === "running") {
@@ -351,14 +354,16 @@ const currentTime = () => Math.floor(Date.now() / 1000);
 const fetchNodeMetrics = ({ lastData, lastRunningNodeExportes, lastNodeMetrics }, callback) => {
   let nodeMetrics = [];
   if (lastRunningNodeExportes.length > 0) { // should fetch metrics
-    fetchMetrics(lastRunningNodeExportes.map(({ address }) => `http://${address}:${nodeExporterPort}/metrics`))
+    fetchMetrics(lastRunningNodeExportes.map(({ address }) => {
+      return { url: `http://${address}:${nodeExporterPort}/metrics` }
+    }))
       .then(metricsList => {
         for (let i = 0; i < lastData.nodes.length; i++) {
           let node = lastData.nodes[i];
           for (let j = 0; j < lastRunningNodeExportes.length; j++) {
             const nodeExporterTask = lastRunningNodeExportes[j];
             if (node["ID"] === nodeExporterTask.nodeID) {
-              const metricsOfThisNode = metricsList[j];
+              const metricsOfThisNode = metricsList[j].metrics;
               const metricToSave = { nodeID: node["ID"], fetchTime: currentTime() };
 
               // last metrics
@@ -424,11 +429,13 @@ const fetchNodeMetrics = ({ lastData, lastRunningNodeExportes, lastNodeMetrics }
 const fetchTasksMetrics = ({ lastRunningCadvisors, lastRunningTasksMetrics, lastRunningTasksID }, callback) => {
   let runningTasksMetrics = [];
   if (lastRunningCadvisors.length > 0) { // should fetch metrics
-    fetchMetrics(lastRunningCadvisors.map(({ address }) => `http://${address}:${cadvisorPort}/metrics`))
+    fetchMetrics(lastRunningCadvisors.map(({ address }) => {
+      return { url: `http://${address}:${cadvisorPort}/metrics` }
+    }))
       .then(metricsList => {
         let allMetrics = [];
         for (let i = 0; i < metricsList.length; i++) {
-          allMetrics = allMetrics.concat(metricsList[i]);
+          allMetrics = allMetrics.concat(metricsList[i].metrics);
         }
         for (let i = 0; i < lastRunningTasksID.length; i++) {
           let taskID = lastRunningTasksID[i];
@@ -500,11 +507,13 @@ function hasSwarmLabel(labels) {
 const fetchNonSwarmContainersMetrics = ({ lastRunningCadvisors, lastRunningNonSwarmContainersMetrics }, callback) => {
   let runningNonSwarmContainersMetrics = [];
   if (lastRunningCadvisors.length > 0) { // should fetch metrics
-    fetchMetrics(lastRunningCadvisors.map(({ address }) => `http://${address}:${cadvisorPort}/metrics`))
+    fetchMetrics(lastRunningCadvisors.map(({ nodeID, address }) => {
+      return { nodeID, url: `http://${address}:${cadvisorPort}/metrics` }
+    }))
       .then(metricsList => {
         let allMetrics = [];
         for (let i = 0; i < metricsList.length; i++) {
-          allMetrics = allMetrics.concat(metricsList[i]);
+          allMetrics = allMetrics.concat(metricsList[i].metrics);
         }
 
         console.log("check containers ...")
