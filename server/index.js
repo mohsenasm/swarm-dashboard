@@ -508,7 +508,7 @@ const fetchNonSwarmContainersMetrics = ({ lastRunningCadvisors, lastRunningNonSw
         }
 
         const containerMap = new Map();
-        for (const family of metricFamilies) {
+        for (const family of metricsList) {
           // Look for container_start_time_seconds metric family
           if (family.name === 'container_start_time_seconds') {
             // Iterate through individual metrics in this family
