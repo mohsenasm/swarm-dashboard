@@ -1,5 +1,5 @@
 FROM node:24-alpine AS base
-RUN apk add --no-cache --update tini lego curl
+RUN apk add --no-cache --update tini 'lego=~4' curl
 ENTRYPOINT ["/sbin/tini", "--"]
 WORKDIR /home/node/app
 
