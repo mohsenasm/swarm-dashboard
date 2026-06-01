@@ -653,13 +653,12 @@ const addNonSwarmContainersToData = (data, nonSwarmContainers) => {
       }
       let task = {
         "ID": container.name,
-        "ServiceID": container.name,
+        "Name": container.name,
         "Status": {
           "Timestamp": container.startedAt.toISOString(),
           "State": "running",
           "timestateInfo": timestateInfo,
         },
-        "DesiredState": "running",
         "Spec": {
           "ContainerSpec": {
             "Image": "-"
