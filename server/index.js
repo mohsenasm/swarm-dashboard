@@ -4,7 +4,6 @@ import { createServer as httpsCreateServer } from 'node:https';
 import { createHash } from 'crypto';
 import parsePrometheusTextFormat from 'parse-prometheus-text-format';
 import { fetch, Agent } from 'undici';
-import { createGunzip } from 'zlib';
 
 import WebSocket, { WebSocketServer } from 'ws';
 import express, { Router } from 'express';
@@ -116,23 +115,7 @@ const dockerAPIRequest = async (path) => {
     throw new Error(`Docker API error: ${response.status} ${response.statusText}`);
   }
 
-  let body = await response.arrayBuffer();
-  const contentEncoding = response.headers.get('content-encoding');
-
-  // Decompress gzip if present
-  if (contentEncoding === 'gzip') {
-    body = await new Promise((resolve, reject) => {
-      const gunzip = createGunzip();
-      const chunks = [];
-      gunzip.on('data', chunk => chunks.push(chunk));
-      gunzip.on('end', () => resolve(Buffer.concat(chunks)));
-      gunzip.on('error', reject);
-      gunzip.write(Buffer.from(body));
-      gunzip.end();
-    });
-  }
-
-  return Buffer.from(body).toString();
+  return await response.text();
 };
 
 const fetchDockerData = () =>
@@ -163,22 +146,7 @@ const metricRequest = async (url) => {
     throw new Error(`Metrics request failed: ${response.status} ${response.statusText}`);
   }
 
-  let body = await response.arrayBuffer();
-  const contentEncoding = response.headers.get('content-encoding');
-
-  if (contentEncoding === 'gzip') {
-    body = await new Promise((resolve, reject) => {
-      const gunzip = createGunzip();
-      const chunks = [];
-      gunzip.on('data', chunk => chunks.push(chunk));
-      gunzip.on('end', () => resolve(Buffer.concat(chunks)));
-      gunzip.on('error', reject);
-      gunzip.write(Buffer.from(body));
-      gunzip.end();
-    });
-  }
-
-  return Buffer.from(body).toString();
+  return await response.text();
 };
 
 const fetchMetrics = (nodes) =>
