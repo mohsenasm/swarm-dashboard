@@ -13,8 +13,10 @@
     "moment": "^2.30.1",
     "parse-prometheus-text-format": "^1.1.1",
     "ramda": "0.32.0",
+    "undici": "^8.10.2",
     "uuid": "14.0.0",
-    "ws": "^8.21.0"
+    "ws": "^8.21.0",
+    "zlib": "^1.0.5"
   },
   "devDependencies": {},
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"

@@ -1,8 +1,10 @@
 import { readFileSync, watchFile } from 'node:fs';
-import { request, createServer as httpCreateServer } from 'node:http';
+import { createServer as httpCreateServer } from 'node:http';
 import { createServer as httpsCreateServer } from 'node:https';
 import { createHash } from 'crypto';
 import parsePrometheusTextFormat from 'parse-prometheus-text-format';
+import { fetch, Agent } from 'undici';
+import { createGunzip } from 'zlib';
 
 import WebSocket, { WebSocketServer } from 'ws';
 import express, { Router } from 'express';
@@ -67,34 +69,70 @@ function formatBytes(bytes, decimals = 0) {
 }
 
 // Docker API integration
-const dockerRequestBaseOptions = {
-  method: 'GET',
-};
+let dockerAgent;
+
+// Initialize the agent based on socket type
 if (dockerSocket.startsWith("tcp://")) {
   const regex = /^tcp:\/\/([^:]+):(\d+)$/;
   const match = dockerSocket.match(regex);
   if (match) {
-    dockerRequestBaseOptions.host = match[1];
-    dockerRequestBaseOptions.port = parseInt(match[2]);
+    const host = match[1];
+    const port = parseInt(match[2]);
+    dockerAgent = new Agent({
+      connect: {
+        hostname: host,
+        port: port,
+      },
+    });
   } else {
-    console.log("error is parsing DOCKER_SOCKET");
+    console.log("error in parsing DOCKER_SOCKET");
   }
 } else {
-  dockerRequestBaseOptions.socketPath = dockerSocket;
-}
-const dockerAPIRequest = path => {
-  return new Promise((res, rej) => {
-    let buffer = '';
-
-    const r = request({ ...dockerRequestBaseOptions, path }, response => {
-      response.on('data', chunk => (buffer = buffer + chunk));
-      response.on('end', () => res(buffer));
-    });
-
-    r.on('error', rej);
-
-    r.end();
+  // Unix socket
+  dockerAgent = new Agent({
+    connect: {
+      socketPath: dockerSocket,
+    },
   });
+}
+
+const dockerAPIRequest = async (path) => {
+  // Construct URL based on socket type
+  const url = dockerSocket.startsWith("tcp://")
+    ? (() => {
+      const match = dockerSocket.match(/^tcp:\/\/([^:]+):(\d+)$/);
+      return `http://${match[1]}:${match[2]}${path}`;
+    })()
+    : `http://localhost${path}`;
+
+  const response = await fetch(url, {
+    dispatcher: dockerAgent,
+    headers: {
+      'Accept-Encoding': 'gzip',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Docker API error: ${response.status} ${response.statusText}`);
+  }
+
+  let body = await response.arrayBuffer();
+  const contentEncoding = response.headers.get('content-encoding');
+
+  // Decompress gzip if present
+  if (contentEncoding === 'gzip') {
+    body = await new Promise((resolve, reject) => {
+      const gunzip = createGunzip();
+      const chunks = [];
+      gunzip.on('data', chunk => chunks.push(chunk));
+      gunzip.on('end', () => resolve(Buffer.concat(chunks)));
+      gunzip.on('error', reject);
+      gunzip.write(Buffer.from(body));
+      gunzip.end();
+    });
+  }
+
+  return Buffer.from(body).toString();
 };
 
 const fetchDockerData = () =>
@@ -111,32 +149,46 @@ const fetchDockerData = () =>
   }));
 
 // Fetch metrics
+const metricsAgent = new Agent();
 
-const metricRequest = (url) => {
-  return new Promise((res, rej) => {
-    let buffer = '';
-
-    const r = request(url, response => {
-      response.on('data', chunk => (buffer = buffer + chunk));
-      response.on('end', () => res(buffer));
-    });
-
-    r.on('error', rej);
-
-    r.end();
+const metricRequest = async (url) => {
+  const response = await fetch(url, {
+    dispatcher: metricsAgent,
+    headers: {
+      'Accept-Encoding': 'gzip',
+    },
   });
+
+  if (!response.ok) {
+    throw new Error(`Metrics request failed: ${response.status} ${response.statusText}`);
+  }
+
+  let body = await response.arrayBuffer();
+  const contentEncoding = response.headers.get('content-encoding');
+
+  if (contentEncoding === 'gzip') {
+    body = await new Promise((resolve, reject) => {
+      const gunzip = createGunzip();
+      const chunks = [];
+      gunzip.on('data', chunk => chunks.push(chunk));
+      gunzip.on('end', () => resolve(Buffer.concat(chunks)));
+      gunzip.on('error', reject);
+      gunzip.write(Buffer.from(body));
+      gunzip.end();
+    });
+  }
+
+  return Buffer.from(body).toString();
 };
 
-const fetchMetrics = (nodes) => {
-  let promises = [];
-  for (let i = 0; i < nodes.length; i++) {
-    let node = nodes[i];
-    promises.push(metricRequest(node.url)
-      .then(parsePrometheusTextFormat)
-      .then(metrics => ({ nodeID: node.nodeID, metrics })));
-  }
-  return Promise.all(promises);
-}
+const fetchMetrics = (nodes) =>
+  Promise.all(
+    nodes.map(node =>
+      metricRequest(node.url)
+        .then(parsePrometheusTextFormat)
+        .then(metrics => ({ nodeID: node.nodeID, metrics }))
+    )
+  );
 
 // Docker API returns networks in an undefined order, this
 // stabilizes the order for effective caching
